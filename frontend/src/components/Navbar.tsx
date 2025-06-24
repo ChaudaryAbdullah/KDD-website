@@ -1,12 +1,44 @@
-import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Droplets, Phone } from "lucide-react";
+import UserLogo from "../assets/userlogo.png";
+import { Menu, X } from "lucide-react";
 import logo from "../assets/cut.png";
 const Navbar = () => {
+  const navigate = useNavigate();
   const location = useLocation();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isMentor, setIsMentor] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Update login status on route change
+  useEffect(() => {
+    const userId = localStorage.getItem("data");
+    setIsLoggedIn(!!userId);
+  }, [location]);
+
+  // Re-check mentor status when login state or route changes
+  useEffect(() => {
+    const userId = localStorage.getItem("data");
+
+    if (!userId) {
+      setIsMentor(false); // reset if no user
+      return;
+    }
+
+    // === TEMPORARY MENTOR CHECK using sessionStorage ===
+    const users = JSON.parse(sessionStorage.getItem("signupDataList") || "[]");
+    const currentUser = users.find((user: any) => user.userName === userId);
+
+    if (currentUser?.role === "mentor") {
+      setIsMentor(true);
+    } else {
+      setIsMentor(false);
+    }
+  }, [isLoggedIn, location]);
 
   // Scroll effect
   useEffect(() => {
@@ -16,6 +48,26 @@ const Navbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleProfileClick = () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+    } else {
+      setIsDropdownOpen((prev) => !prev);
+    }
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem("data");
+    setIsLoggedIn(false);
+    setIsDropdownOpen(false);
+    navigate("/");
+  };
+
+  const handleViewMentor = () => {
+    navigate("/addproject");
+    setIsDropdownOpen(false);
+  };
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -41,12 +93,17 @@ const Navbar = () => {
             whileTap={{ scale: 0.95 }}
             className="flex flex-col"
           >
-            <Link to="/" className="flex items-center space-x-2">
-              <img src={logo} alt="KDD LAB" width="20%" />
+            <Link to="/" className="flex items-center space-x-2 ">
+              <img
+                src={logo}
+                alt="KDD LAB"
+                width="20%"
+                className={`${isScrolled ? "bg-transparent " : "bg-white/45 "}`}
+              />
               <span
                 className={`font-bold ${
                   isScrolled ? "text-gray-900" : "text-white"
-                } text-lg sm:text-xl md:text-2xl`}
+                } text-sm sm:text-xl md:text-2xl`}
               >
                 Driving InnovationThrough Data
               </span>
@@ -91,77 +148,150 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Desktop Contact Info */}
-          <motion.div
-            className="hidden md:flex items-center space-x-4"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.8 }}
-            whileHover={{ scale: 1.05 }}
-          ></motion.div>
+          {/* Profile icon */}
+          <div
+            className="hidden md:block relative"
+            style={{ marginLeft: "10px" }}
+            ref={dropdownRef}
+          >
+            <button
+              onClick={handleProfileClick}
+              className={
+                isScrolled
+                  ? "bg-purple-400 text-white px-2 py-2 rounded-full hover:bg-purple-700 transition flex items-center justify-center"
+                  : "bg-white/85 text-purple-400 px-2 py-2 rounded-full hover:bg-white/80 transition flex items-center justify-center"
+              }
+              style={{ width: 45, height: 45 }}
+            >
+              <img
+                src={UserLogo}
+                alt="G"
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            </button>
+
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white border rounded-md shadow-md z-50">
+                {isMentor ? (
+                  <button
+                    onClick={handleViewMentor}
+                    className="block w-full px-4 py-2 text-left hover:bg-gray-100"
+                  >
+                    Add Projects
+                  </button>
+                ) : (
+                  <></>
+                )}
+                <button
+                  onClick={handleSignOut}
+                  className="block w-full px-4 py-2 text-left hover:bg-gray-100 text-red-500"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Hamburger Icon */}
+          <motion.button
+            onClick={() => setIsOpen(!isOpen)}
+            className={`md:hidden p-2 rounded-md ${
+              isScrolled ? "text-gray-900" : "text-white"
+            }`}
+            whileTap={{ scale: 0.95 }}
+          >
+            <AnimatePresence mode="wait">
+              {isOpen ? (
+                <motion.div
+                  key="close"
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <X className="h-6 w-6" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="menu"
+                  initial={{ rotate: 90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Menu className="h-6 w-6" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.button>
         </div>
 
-        {/* Hamburger Icon */}
-        <motion.button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`md:hidden p-2 rounded-md ${
-            isScrolled ? "text-gray-900" : "text-white"
-          }`}
-          whileTap={{ scale: 0.95 }}
-        >
-          <AnimatePresence mode="wait">
-            {isOpen ? (
-              <motion.div
-                key="close"
-                initial={{ rotate: -90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: 90, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <X className="h-6 w-6" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="menu"
-                initial={{ rotate: 90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: -90, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Menu className="h-6 w-6" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.button>
-      </div>
-      {/* Mobile Dropdown Menu */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            key="mobile-menu"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="md:hidden absolute top-full left-0 w-full bg-white shadow-lg z-40"
-          >
-            <div className="flex flex-col items-start px-6 py-4 space-y-3">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.path}
-                  className="text-gray-800 hover:text-blue-600 w-full"
-                  onClick={() => setIsOpen(false)}
-                >
-                  {link.name}
-                </Link>
-              ))}
+        {/* Mobile Dropdown Menu */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              key="mobile-menu"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="md:hidden absolute top-full left-0 w-full bg-white shadow-lg z-40"
+            >
+              <div className="flex flex-col items-start px-6 py-4 space-y-3">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    to={link.path}
+                    className="text-gray-800 hover:text-blue-600 w-full"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    {link.name}
+                  </Link>
+                ))}
 
-              <hr className="w-full border-gray-200" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <hr className="w-full border-gray-200" />
+
+                {!isLoggedIn ? (
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate("/login");
+                    }}
+                    className="w-full text-left text-gray-800 hover:text-blue-600"
+                  >
+                    Login
+                  </button>
+                ) : (
+                  <>
+                    {isMentor ? (
+                      <button
+                        onClick={() => {
+                          setIsOpen(false);
+                          handleViewMentor();
+                        }}
+                        className="w-full text-left text-gray-800 hover:text-blue-600"
+                      >
+                        Add Projects
+                      </button>
+                    ) : (
+                      <></>
+                    )}
+                    <button
+                      onClick={() => {
+                        setIsOpen(false);
+                        handleSignOut();
+                      }}
+                      className="w-full text-left text-red-500 hover:underline"
+                    >
+                      Sign Out
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.nav>
   );
 };

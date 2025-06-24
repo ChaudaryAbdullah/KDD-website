@@ -1,19 +1,16 @@
-import React, { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import DataScience from "../assets/Data Science_col.png";
 import DeepLearning from "../assets/Deep Learning_col.png";
 import MachineLearning from "../assets/Machine learning_col.png";
 import BigData from "../assets/Big Data_col.png";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
   FileArchive,
   Presentation,
-  Shield,
-  Clock,
   BookOpenCheck,
   Users,
-  Truck,
   GraduationCap,
 } from "lucide-react";
 
@@ -374,40 +371,6 @@ const Home = () => {
           </motion.div>
         </div>
       </section>
-
-      {/* CTA Section
-      <section className="py-20 bg-gray-900 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-          >
-            <h2 className="text-4xl font-bold text-white mb-4">
-              Ready to Get Started?
-            </h2>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of satisfied customers who trust AquaNest for their
-              daily hydration needs.
-            </p>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                to="/products"
-                className="inline-flex items-center bg-blue-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-blue-700 transition-colors duration-300 space-x-2"
-              >
-                <span>Start Your Order</span>
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <ArrowRight className="h-5 w-5" />
-                </motion.div>
-              </Link>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section> */}
     </motion.div>
   );
 };

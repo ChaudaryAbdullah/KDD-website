@@ -1,90 +1,136 @@
-import { useState, FormEvent, useRef } from "react";
-import { Plus, User, GraduationCap, Eye, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+
+// Types
+interface UserProfile {
+  userName: string;
+  firstName: string;
+  lastName: string;
+  role: "mentor" | "student";
+  email?: string;
+  profilePic?: string;
+}
 
 interface Project {
   id: string;
   name: string;
   description: string;
-  contributor: "student" | "mentor";
+  Mentor: string;
   image: string;
-  createdAt: Date;
+  status: "private" | "public";
+  createdAt: string;
+}
+
+// Profile card for mentors/students
+function ProfileCard({ user }: { user: UserProfile }) {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.06, boxShadow: "0 8px 32px rgba(80,0,120,0.12)" }}
+      className="bg-gradient-to-br from-purple-100 via-white to-blue-100 p-6 rounded-2xl shadow-xl flex flex-col items-center border border-purple-200 transition-all duration-200"
+    >
+      <div className="relative mb-4">
+        <img
+          src={user.profilePic || "/placeholder.svg"}
+          alt={user.userName}
+          className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+        />
+        <span
+          className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold ${
+            user.role === "mentor"
+              ? "bg-purple-600 text-white"
+              : "bg-blue-600 text-white"
+          }`}
+          title={user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+        >
+          {user.role === "mentor" ? "M" : "S"}
+        </span>
+      </div>
+      <h2 className="text-xl font-bold text-purple-800 mb-1">
+        {user.userName}
+      </h2>
+      <p
+        className={`text-xs font-semibold uppercase tracking-wider mb-1 ${
+          user.role === "mentor" ? "text-purple-600" : "text-blue-600"
+        }`}
+      >
+        {user.firstName + " " + user.lastName}
+      </p>
+      <p
+        className={`text-xs font-semibold uppercase tracking-wider mb-1 ${
+          user.role === "mentor" ? "text-purple-600" : "text-blue-600"
+        }`}
+      >
+        {user.role}
+      </p>
+      <p className="text-sm text-gray-500">{user.email}</p>
+    </motion.div>
+  );
+}
+
+// Project card for public projects
+function ProjectCard({ project }: { project: Project }) {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.03, boxShadow: "0 8px 32px rgba(0,80,180,0.13)" }}
+      className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-5 rounded-2xl shadow-lg border border-blue-200 flex flex-col transition-all duration-200"
+    >
+      <div className="relative mb-3 h-40 rounded-xl overflow-hidden shadow">
+        <img
+          src={project.image || "/placeholder.svg"}
+          alt={project.name}
+          className="w-full h-full object-cover"
+        />
+        <span
+          className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-semibold shadow  bg-purple-600 text-white
+          }`}
+        >
+          {project.Mentor.charAt(0).toUpperCase() + project.Mentor.slice(1)}
+        </span>
+      </div>
+      <h3 className="font-bold text-lg text-blue-900 mb-1">{project.name}</h3>
+      <p className="text-sm text-gray-700 mb-2 line-clamp-3">
+        {project.description.length > 120
+          ? project.description.slice(0, 120) + "..."
+          : project.description}
+      </p>
+      <div className="flex justify-between items-center mt-auto">
+        <span className="text-xs text-gray-400">
+          {new Date(project.createdAt).toLocaleDateString()}
+        </span>
+        <span
+          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+            project.status === "public"
+              ? "bg-green-100 text-green-700"
+              : "bg-gray-200 text-gray-500"
+          }`}
+        >
+          {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+        </span>
+      </div>
+    </motion.div>
+  );
 }
 
 export default function PortfolioPage() {
-  const heroRef = useRef(null);
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: "1",
-      name: "E-Commerce Platform",
-      description:
-        "A full-stack e-commerce solution built with Next.js and Stripe integration.",
-      contributor: "student",
-      image: "/placeholder.svg",
-      createdAt: new Date("2024-01-15"),
-    },
-    {
-      id: "2",
-      name: "AI Chat Application",
-      description:
-        "An intelligent chatbot application using OpenAI API with real-time messaging.",
-      contributor: "mentor",
-      image: "/placeholder.svg",
-      createdAt: new Date("2024-02-10"),
-    },
-    {
-      id: "3",
-      name: "Task Management System",
-      description:
-        "A collaborative project management tool with drag-and-drop functionality.",
-      contributor: "student",
-      image: "/placeholder.svg",
-      createdAt: new Date("2024-03-05"),
-    },
-  ]);
+  const [mentors, setMentors] = useState<UserProfile[]>([]);
+  const [students, setStudents] = useState<UserProfile[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
 
-  const [filter, setFilter] = useState<"all" | "student" | "mentor">("all");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    contributor: "" as "student" | "mentor" | "",
-    image: "",
-  });
+  useEffect(() => {
+    const userListRaw = sessionStorage.getItem("signupDataList");
+    const projectListRaw = localStorage.getItem("mentorProjects");
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.description || !formData.contributor)
-      return;
+    if (userListRaw) {
+      const parsedUsers: UserProfile[] = JSON.parse(userListRaw);
+      setMentors(parsedUsers.filter((u) => u.role === "mentor"));
+      setStudents(parsedUsers.filter((u) => u.role === "student"));
+    }
 
-    const newProject: Project = {
-      id: Date.now().toString(),
-      name: formData.name,
-      description: formData.description,
-      contributor: formData.contributor,
-      image: formData.image || "/placeholder.svg",
-      createdAt: new Date(),
-    };
-
-    setProjects([newProject, ...projects]);
-    setFormData({ name: "", description: "", contributor: "", image: "" });
-    setIsAddDialogOpen(false);
-  };
-
-  const handleDelete = (id: string) => {
-    setProjects(projects.filter((project) => project.id !== id));
-  };
-
-  const studentProjects = projects.filter((p) => p.contributor === "student");
-  const mentorProjects = projects.filter((p) => p.contributor === "mentor");
-
-  const filteredProjects =
-    filter === "student"
-      ? studentProjects
-      : filter === "mentor"
-      ? mentorProjects
-      : projects;
+    if (projectListRaw) {
+      const parsedProjects: Project[] = JSON.parse(projectListRaw);
+      setProjects(parsedProjects.filter((p) => p.status === "public"));
+    }
+  }, []);
 
   return (
     <div className="pt-24 bg-gradient-to-br from-violet-800 via-purple-700 to-purple-600">
@@ -105,352 +151,41 @@ export default function PortfolioPage() {
           </div>
         </section>
 
-        <div className="min-h-screen bg-slate-100 p-4">
-          <div className="max-w-5xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <button
-                onClick={() => setIsAddDialogOpen(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded flex items-center"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Add Project
-              </button>
+        <div className="py-16 bg-gradient-to-b from-white via- to-gray-100 ">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 className="text-4xl font-bold mb-6 text-center text-purple-700 ">
+              Our Mentors
+            </h1>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
+              {mentors.map((mentor) => (
+                <ProfileCard key={mentor.userName} user={mentor} />
+              ))}
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <StatCard
-                title="Total Projects"
-                count={projects.length}
-                icon="📊"
-              />
-              <StatCard
-                title="Student Projects"
-                count={studentProjects.length}
-                icon={<GraduationCap className="w-4 h-4" />}
-              />
-              <StatCard
-                title="Mentor Projects"
-                count={mentorProjects.length}
-                icon={<User className="w-4 h-4" />}
-              />
+          <h1 className="text-4xl font-bold mb-6 text-center text-blue-700">
+            Our Projects
+          </h1>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
+              {projects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
             </div>
+          </div>
 
-            {/* Filter Tabs */}
-            <div className="mb-4 flex gap-4">
-              <button
-                onClick={() => setFilter("all")}
-                className={`text-sm font-medium underline ${
-                  filter === "all" ? "text-blue-800" : "text-blue-600"
-                }`}
-              >
-                All ({projects.length})
-              </button>
-              <button
-                onClick={() => setFilter("student")}
-                className={`text-sm font-medium underline ${
-                  filter === "student" ? "text-blue-800" : "text-blue-600"
-                }`}
-              >
-                Students ({studentProjects.length})
-              </button>
-              <button
-                onClick={() => setFilter("mentor")}
-                className={`text-sm font-medium underline ${
-                  filter === "mentor" ? "text-blue-800" : "text-blue-600"
-                }`}
-              >
-                Mentors ({mentorProjects.length})
-              </button>
+          <h1 className="text-4xl font-bold mb-6 text-center text-green-700">
+            Our Students
+          </h1>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pb-10">
+              {students.map((student) => (
+                <ProfileCard key={student.userName} user={student} />
+              ))}
             </div>
-
-            <ProjectGrid
-              projects={filteredProjects}
-              onDelete={handleDelete}
-              onView={setSelectedProject}
-            />
-
-            {/* Modal for Add */}
-            {isAddDialogOpen && (
-              <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex justify-center items-center">
-                <motion.div
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.95, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg relative"
-                >
-                  <button
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
-                    onClick={() => setIsAddDialogOpen(false)}
-                    aria-label="Close"
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                  <h2 className="text-2xl font-bold mb-4 text-blue-700">
-                    Add New Project
-                  </h2>
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-semibold mb-1 text-gray-700">
-                        Project Name
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        required
-                        placeholder="Enter project name"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold mb-1 text-gray-700">
-                        Contributor
-                      </label>
-                      <select
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                        value={formData.contributor}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            contributor: e.target.value as "student" | "mentor",
-                          })
-                        }
-                        required
-                      >
-                        <option value="">Select</option>
-                        <option value="student">Student</option>
-                        <option value="mentor">Mentor</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold mb-1 text-gray-700">
-                        Upload Image
-                      </label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setFormData({
-                                ...formData,
-                                image: reader.result as string,
-                              });
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                      {formData.image && (
-                        <img
-                          src={formData.image}
-                          alt="Preview"
-                          className="mt-3 h-32 w-full object-cover rounded-lg border border-gray-200 shadow"
-                        />
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold mb-1 text-gray-700">
-                        Description
-                      </label>
-                      <textarea
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-                        rows={3}
-                        value={formData.description}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            description: e.target.value,
-                          })
-                        }
-                        required
-                        placeholder="Describe your project"
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsAddDialogOpen(false)}
-                        className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
-                      >
-                        Add Project
-                      </button>
-                    </div>
-                  </form>
-                </motion.div>
-              </div>
-            )}
-
-            {/* Modal for View */}
-            {selectedProject && (
-              <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex justify-center items-center">
-                <motion.div
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.95, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-xl relative"
-                >
-                  <button
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
-                    onClick={() => setSelectedProject(null)}
-                    aria-label="Close"
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                  <h3 className="text-2xl font-bold mb-2 text-blue-700">
-                    {selectedProject.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Added on {selectedProject.createdAt.toLocaleDateString()}
-                  </p>
-                  <div className="w-full h-56 mb-4 rounded-lg overflow-hidden border border-gray-200 shadow">
-                    <img
-                      src={selectedProject.image}
-                      alt={selectedProject.name}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                  <p className="text-gray-700 text-base leading-relaxed">
-                    {selectedProject.description}
-                  </p>
-                  <div className="mt-6 flex items-center gap-3">
-                    <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                        selectedProject.contributor === "student"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-purple-100 text-purple-700"
-                      }`}
-                    >
-                      {selectedProject.contributor === "student" ? (
-                        <GraduationCap className="w-4 h-4 mr-1" />
-                      ) : (
-                        <User className="w-4 h-4 mr-1" />
-                      )}
-                      {selectedProject.contributor.charAt(0).toUpperCase() +
-                        selectedProject.contributor.slice(1)}
-                    </span>
-                  </div>
-                </motion.div>
-              </div>
-            )}
           </div>
         </div>
       </motion.div>
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  count,
-  icon,
-}: {
-  title: string;
-  count: number;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="p-4 border rounded shadow-sm bg-white">
-      <div className="flex justify-between items-center text-sm mb-2">
-        <span className="font-medium">{title}</span>
-        <span>{icon}</span>
-      </div>
-      <div className="text-xl font-bold">{count}</div>
-    </div>
-  );
-}
-
-function ProjectGrid({
-  projects,
-  onDelete,
-  onView,
-}: {
-  projects: Project[];
-  onDelete: (id: string) => void;
-  onView: (project: Project) => void;
-}) {
-  if (projects.length === 0) {
-    return <p className="text-center mt-10 text-gray-500">No projects found</p>;
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {projects.map((project) => (
-        <div key={project.id} className="border rounded p-4 bg-white shadow-sm">
-          <div className="relative h-40 mb-2">
-            <img
-              src={project.image}
-              alt={project.name}
-              className="object-cover rounded w-full h-full"
-              style={{ objectFit: "cover", width: "100%", height: "100%" }}
-            />
-          </div>
-          <h4 className="font-bold text-lg">{project.name}</h4>
-          <p className="text-sm text-gray-500 mb-2">
-            {project.createdAt.toLocaleDateString()}
-          </p>
-          <p className="text-sm text-gray-700 line-clamp-2 mb-3">
-            {project.description}
-          </p>
-          <div className="flex justify-between">
-            <button
-              onClick={() => onView(project)}
-              className="text-blue-600 text-sm flex items-center gap-1"
-            >
-              <Eye className="w-4 h-4" /> View
-            </button>
-            <button
-              onClick={() => onDelete(project.id)}
-              className="text-red-600 text-sm flex items-center gap-1"
-            >
-              <Trash2 className="w-4 h-4" /> Delete
-            </button>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

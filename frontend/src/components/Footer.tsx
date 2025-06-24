@@ -72,6 +72,7 @@ const Footer = () => {
               {[
                 { name: "Home", path: "/" },
                 { name: "About Us", path: "/about" },
+                { name: "Portfolio", path: "/portfolio" },
               ].map((link, index) => (
                 <motion.li
                   key={link.name}
