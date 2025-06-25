@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import UserLogo from "../assets/userlogo.png";
 import { Menu, X } from "lucide-react";
 import logo from "../assets/cut.png";
+import { auth, db } from "../firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -14,31 +18,41 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Update login status on route change
   useEffect(() => {
-    const userId = localStorage.getItem("data");
-    setIsLoggedIn(!!userId);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsLoggedIn(true);
+
+        const fetchUserRole = async () => {
+          try {
+            const userRef = doc(db, "users", user.uid);
+            console.log(userRef);
+            const userSnap = await getDoc(userRef);
+            console.log(userSnap);
+
+            if (userSnap.exists()) {
+              const userData = userSnap.data();
+              setIsMentor(userData.role === "mentor");
+            } else {
+              console.warn("No user document found for UID:", user.uid);
+              setIsMentor(false);
+            }
+          } catch (error) {
+            console.error("Error fetching user document:", error);
+            setIsMentor(false);
+          }
+        };
+
+        // Call the async function
+        fetchUserRole();
+      } else {
+        setIsLoggedIn(false);
+        setIsMentor(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, [location]);
-
-  // Re-check mentor status when login state or route changes
-  useEffect(() => {
-    const userId = localStorage.getItem("data");
-
-    if (!userId) {
-      setIsMentor(false); // reset if no user
-      return;
-    }
-
-    // === TEMPORARY MENTOR CHECK using localStorage ===
-    const users = JSON.parse(localStorage.getItem("signupDataList") || "[]");
-    const currentUser = users.find((user: any) => user.userName === userId);
-
-    if (currentUser?.role === "mentor") {
-      setIsMentor(true);
-    } else {
-      setIsMentor(false);
-    }
-  }, [isLoggedIn, location]);
 
   // Scroll effect
   useEffect(() => {
@@ -57,8 +71,8 @@ const Navbar = () => {
     }
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem("data");
+  const handleSignOut = async () => {
+    await signOut(auth);
     setIsLoggedIn(false);
     setIsDropdownOpen(false);
     navigate("/");

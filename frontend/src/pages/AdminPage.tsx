@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from "react";
+import { auth, db } from "../firebase";
+import {
+  createUserWithEmailAndPassword,
+  updatePassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { collection, getDocs, setDoc, doc } from "firebase/firestore";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface User {
+  uid: string;
   userName: string;
   firstName: string;
   lastName: string;
@@ -9,8 +19,6 @@ interface User {
   email: string;
   role: string;
   rank: string;
-  password: string;
-  confirmPassword: string;
   profilePic?: string;
   description: string;
   isActiveMember: boolean;
@@ -19,7 +27,7 @@ interface User {
 
 const AdminPage = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [editId, setEditId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null); // Holds uid
   const [formData, setFormData] = useState({
     userName: "",
     firstName: "",
@@ -45,7 +53,6 @@ const AdminPage = () => {
     "researcher",
   ];
   const studentRankOptions = ["fypstudent", "internee", "alumni"];
-  const roleOptions = ["mentor", "student"];
 
   const getAvailableRanks = (role: string) => {
     return role === "student"
@@ -55,25 +62,41 @@ const AdminPage = () => {
       : [];
   };
 
-  useEffect(() => {
-    const storedUsers = localStorage.getItem("signupDataList");
-    if (storedUsers) {
-      try {
-        const parsedUsers: User[] = JSON.parse(storedUsers);
-        setUsers(parsedUsers);
-      } catch (error) {
-        setUsers([]);
-      }
-    } else {
-      setUsers([]);
+  const fetchUsers = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "users"));
+      const usersList: User[] = snapshot.docs.map((docSnap) => ({
+        uid: docSnap.id,
+        ...(docSnap.data() as Omit<User, "uid">),
+      }));
+      setUsers(usersList);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      showToast("Failed to load users", "error");
     }
+  };
+
+  useEffect(() => {
+    fetchUsers();
   }, []);
 
   const showToast = (message: string, type: "success" | "error") => {
-    alert(`${type.toUpperCase()}: ${message}`);
+    if (type === "success") {
+      toast.success(message, {
+        position: "top-right",
+        autoClose: 3000,
+        theme: "colored",
+      });
+    } else {
+      toast.error(message, {
+        position: "top-right",
+        autoClose: 3000,
+        theme: "colored",
+      });
+    }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const {
       userName,
       email,
@@ -85,6 +108,9 @@ const AdminPage = () => {
       dob,
       password,
       confirmPassword,
+      profilePic,
+      description,
+      isActiveMember,
     } = formData;
 
     if (
@@ -95,82 +121,135 @@ const AdminPage = () => {
       !firstName ||
       !lastName ||
       !address ||
-      !dob ||
-      !password ||
-      !confirmPassword
+      !dob
     ) {
-      showToast(
-        "All fields are required, including dropdown selections.",
-        "error"
-      );
-      return;
+      return showToast("All fields are required.", "error");
     }
 
-    if (password !== confirmPassword) {
-      showToast("Passwords do not match!", "error");
-      return;
+    if (!editId && (!password || !confirmPassword)) {
+      return showToast("Password fields are required for new users.", "error");
     }
 
-    if (!editId) {
-      const existingUser = users.find(
-        (user) => user.userName === userName || user.email === email
-      );
-      if (existingUser) {
-        showToast("Username or email already exists!", "error");
-        return;
+    if (password && password !== confirmPassword) {
+      return showToast("Passwords do not match!", "error");
+    }
+
+    if (password && password.length < 6) {
+      return showToast("Password must be at least 6 characters long.", "error");
+    }
+
+    try {
+      const userQuerySnapshot = await getDocs(collection(db, "users"));
+
+      if (!editId) {
+        // Add Mode
+        const duplicate = userQuerySnapshot.docs.find(
+          (docSnap) =>
+            docSnap.data().email === email ||
+            docSnap.data().userName === userName
+        );
+
+        if (duplicate) {
+          return showToast("Username or email already exists!", "error");
+        }
+
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const newUser = userCredential.user;
+
+        await setDoc(doc(db, "users", newUser.uid), {
+          uid: newUser.uid,
+          userName,
+          email,
+          role,
+          rank,
+          firstName,
+          lastName,
+          address,
+          dob,
+          profilePic: profilePic || "",
+          description: description || "",
+          isActiveMember,
+          createdAt: new Date().toISOString(),
+        });
+
+        showToast("User added successfully!", "success");
+      } else {
+        // Edit Mode
+        const userRef = doc(db, "users", editId);
+        const updateData = {
+          userName,
+          email,
+          role,
+          rank,
+          firstName,
+          lastName,
+          address,
+          dob,
+          profilePic: profilePic || "",
+          description: description || "",
+          isActiveMember,
+        };
+
+        await setDoc(userRef, updateData, { merge: true });
+
+        if (password) {
+          // Temporarily sign in as the user to update their password
+          await signInWithEmailAndPassword(auth, email, password);
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+            await updatePassword(currentUser, password);
+            await auth.signOut(); // Sign out to prevent session conflicts
+          } else {
+            throw new Error("Failed to authenticate user for password update");
+          }
+        }
+
+        showToast("User updated successfully!", "success");
+        setEditId(null);
       }
 
-      const newUser: User = {
-        ...formData,
-        createdAt: new Date().toISOString(),
-      };
-      const updatedUsers = [newUser, ...users];
-      setUsers(updatedUsers);
-      localStorage.setItem("signupDataList", JSON.stringify(updatedUsers));
-      showToast("User added successfully!", "success");
-    } else {
-      const updatedUsers = users.map((user) =>
-        user.userName === editId ? { ...user, ...formData } : user
-      );
-      setUsers(updatedUsers);
-      localStorage.setItem("signupDataList", JSON.stringify(updatedUsers));
-      showToast("User updated successfully!", "success");
-      setEditId(null);
+      await fetchUsers();
+      setFormData({
+        userName: "",
+        firstName: "",
+        lastName: "",
+        address: "",
+        dob: "",
+        email: "",
+        role: "",
+        rank: "",
+        password: "",
+        confirmPassword: "",
+        profilePic: "",
+        description: "",
+        isActiveMember: false,
+      });
+    } catch (err) {
+      console.error("Error submitting user data:", err);
+      showToast(`Failed to submit user data: ${err.message}`, "error");
     }
-
-    setFormData({
-      userName: "",
-      firstName: "",
-      lastName: "",
-      address: "",
-      dob: "",
-      email: "",
-      role: "",
-      rank: "",
-      password: "",
-      confirmPassword: "",
-      profilePic: "",
-      description: "",
-      isActiveMember: false,
-    });
   };
 
   const handleEdit = (user: User) => {
-    setEditId(user.userName);
+    setEditId(user.uid);
     setFormData({
-      userName: user.userName,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      address: user.address,
-      dob: user.dob,
-      email: user.email,
-      role: user.role || "",
-      rank: user.rank || "",
-      password: user.password,
-      confirmPassword: user.confirmPassword,
-      profilePic: user.profilePic || "",
-      description: user.description,
-      isActiveMember: user.isActiveMember,
+      userName: user.userName ?? "",
+      firstName: user.firstName ?? "",
+      lastName: user.lastName ?? "",
+      address: user.address ?? "",
+      dob: user.dob ?? "",
+      email: user.email ?? "",
+      role: user.role ?? "",
+      rank: user.rank ?? "",
+      password: "",
+      confirmPassword: "",
+      profilePic: user.profilePic ?? "",
+      description: user.description ?? "",
+      isActiveMember: user.isActiveMember ?? false,
     });
   };
 
@@ -298,7 +377,11 @@ const AdminPage = () => {
             </select>
             <div className="grid grid-cols-2 gap-4">
               <input
-                placeholder="Password"
+                placeholder={
+                  editId
+                    ? "New Password (leave blank to keep unchanged)"
+                    : "Password"
+                }
                 type="password"
                 value={formData.password}
                 onChange={(e) =>
@@ -307,7 +390,9 @@ const AdminPage = () => {
                 className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
               />
               <input
-                placeholder="Confirm Password"
+                placeholder={
+                  editId ? "Confirm New Password" : "Confirm Password"
+                }
                 type="password"
                 value={formData.confirmPassword}
                 onChange={(e) =>
@@ -315,6 +400,36 @@ const AdminPage = () => {
                 }
                 className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
               />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mt-2 mb-1">
+                Upload Profile Picture
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setFormData({
+                        ...formData,
+                        profilePic: reader.result as string,
+                      });
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50"
+              />
+              {formData.profilePic && (
+                <img
+                  src={formData.profilePic}
+                  alt="Preview"
+                  className="mt-3 h-32 w-full object-cover rounded-lg border border-gray-200 shadow"
+                />
+              )}
             </div>
             <textarea
               placeholder="Description"
@@ -373,9 +488,9 @@ const AdminPage = () => {
           <div className="space-y-4 max-h-[32rem] overflow-y-auto">
             {users.map((user) => (
               <div
-                key={user.userName}
+                key={user.uid}
                 className={`p-4 border rounded-lg transition-colors flex items-center justify-between ${
-                  editId === user.userName
+                  editId === user.uid
                     ? "bg-purple-100 border-purple-300"
                     : "bg-white border-gray-200"
                 }`}
@@ -402,20 +517,21 @@ const AdminPage = () => {
                 </div>
                 <button
                   onClick={() => handleEdit(user)}
-                  disabled={editId === user.userName}
+                  disabled={editId === user.uid}
                   className={`ml-3 px-4 py-2 text-sm rounded-lg font-semibold transition-colors ${
-                    editId === user.userName
+                    editId === user.uid
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-purple-100 text-purple-700 hover:bg-purple-200"
                   }`}
                 >
-                  {editId === user.userName ? "Editing" : "Edit"}
+                  {editId === user.uid ? "Editing" : "Edit"}
                 </button>
               </div>
             ))}
           </div>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 };

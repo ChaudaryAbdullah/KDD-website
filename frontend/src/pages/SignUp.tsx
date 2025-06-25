@@ -1,7 +1,11 @@
 "use client";
-import { ToastContainer, toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { auth, db } from "../firebase"; // adjust this path if needed
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { setDoc, doc } from "firebase/firestore";
 
 function SignUp() {
   const navigate = useNavigate();
@@ -48,51 +52,66 @@ function SignUp() {
       return;
     }
 
-    // Get existing accounts from localStorage
-    const existingData = JSON.parse(
-      localStorage.getItem("signupDataList") || "[]"
-    );
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+      const user = userCredential.user;
 
-    if (existingData.length >= 10) {
-      setError("Maximum of 10 accounts can be stored temporarily.");
-      toast.error("Maximum limit reached (10 accounts).", {
+      // Save user data to Firestore under uid
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        userName: formData.userName,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        address: formData.address,
+        dob: formData.dob,
+        email: formData.email,
+        role: formData.role,
+        rank: formData.rank,
+        profilePic: formData.profilePic,
+        description: formData.description,
+        isActiveMember: formData.isActiveMember,
+        createdAt: new Date().toISOString(),
+      });
+
+      toast.success("Account created successfully!", {
         position: "top-right",
         autoClose: 3000,
         theme: "colored",
       });
-      return;
+
+      setFormData({
+        userName: "",
+        firstName: "",
+        lastName: "",
+        address: "",
+        dob: "",
+        email: "",
+        role: "",
+        rank: "",
+        password: "",
+        confirmPassword: "",
+        profilePic: "",
+        description: "",
+        isActiveMember: false,
+      });
+
+      navigate("/login");
+    } catch (error: any) {
+      setError(error.message);
+      toast.error("Signup failed: " + error.message, {
+        position: "top-right",
+        autoClose: 3000,
+        theme: "colored",
+      });
     }
-
-    // Add the new account
-    const updatedData = [...existingData, formData];
-    localStorage.setItem("signupDataList", JSON.stringify(updatedData));
-
-    toast.success("Account created successfully!", {
-      position: "top-right",
-      autoClose: 3000,
-      theme: "colored",
-    });
-
-    // Reset form
-    setFormData({
-      userName: "",
-      firstName: "",
-      lastName: "",
-      address: "",
-      dob: "",
-      email: "",
-      role: "",
-      rank: "",
-      password: "",
-      confirmPassword: "",
-      profilePic: "",
-      description: "",
-      isActiveMember: false,
-    });
   };
 
   return (
-    <div className="pt-24  flex items-center justify-center min-h-screen bg-gradient-to-b from-violet-800 via-purple-700 to-white px-4">
+    <div className="pt-24 flex items-center justify-center min-h-screen bg-gradient-to-b from-violet-800 via-purple-700 to-white px-4">
       <div
         className="bg-white p-8 rounded-xl shadow-xl w-full max-w-lg"
         style={{ marginBottom: 20 }}
@@ -126,7 +145,7 @@ function SignUp() {
             value={formData.userName}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-2 border rounded-md"
           />
 
           <div className="flex gap-4">
@@ -137,7 +156,7 @@ function SignUp() {
               value={formData.firstName}
               onChange={handleChange}
               required
-              className="w-1/2 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-1/2 px-4 py-2 border rounded-md"
             />
             <input
               type="text"
@@ -146,7 +165,7 @@ function SignUp() {
               value={formData.lastName}
               onChange={handleChange}
               required
-              className="w-1/2 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-1/2 px-4 py-2 border rounded-md"
             />
           </div>
 
@@ -157,7 +176,7 @@ function SignUp() {
             value={formData.address}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-2 border rounded-md"
           />
 
           <div>
@@ -167,7 +186,7 @@ function SignUp() {
             <input
               type="file"
               accept="image/*"
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full px-4 py-2 border rounded-md"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
@@ -194,10 +213,10 @@ function SignUp() {
           <label className="block text-sm text-gray-700 mt-2 mb-1">Role</label>
           <select
             name="role"
-            value={formData.role || ""}
+            value={formData.role}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-2 border rounded-md"
           >
             <option value="" disabled>
               Select Role
@@ -213,7 +232,7 @@ function SignUp() {
             value={formData.dob}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-2 border rounded-md"
           />
 
           <input
@@ -223,7 +242,7 @@ function SignUp() {
             value={formData.email}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-2 border rounded-md"
           />
 
           <input
@@ -233,7 +252,7 @@ function SignUp() {
             value={formData.password}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-2 border rounded-md"
           />
 
           <input
@@ -243,7 +262,7 @@ function SignUp() {
             value={formData.confirmPassword}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-2 border rounded-md"
           />
 
           <button

@@ -1,4 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { db, storage, auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  doc,
+  deleteDoc,
+} from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -11,122 +24,194 @@ interface Project {
   Mentor: string;
   image: string;
   createdAt: Date;
+  isArchived: boolean;
 }
 
 const AddProject = () => {
   const [mentorName, setMentorName] = useState("");
+  const [mentorUsername, setMentorUsername] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
-  const [editId, setEditId] = useState<string | null>(null); // for editing
+  const [editId, setEditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     image: "",
     status: "private" as "private" | "public",
+    file: null as File | null,
   });
 
   useEffect(() => {
-    const userId = localStorage.getItem("data");
-    if (userId) {
-      const users = JSON.parse(localStorage.getItem("signupDataList") || "[]");
-      const currentUser = users.find((user: any) => user.userName === userId);
-      if (currentUser?.role === "mentor") {
-        setMentorName(currentUser.userName);
-
-        const allProjects = JSON.parse(
-          localStorage.getItem("mentorProjects") || "[]"
-        );
-
-        //Filter only projects belonging to this mentor
-        const myProjects = allProjects.filter(
-          (proj: Project) => proj.Mentor === currentUser.userName
-        );
-
-        setProjects(myProjects);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setMentorName(user.uid);
+        // Fetch username from users collection
+        const q = query(collection(db, "users"), where("uid", "==", user.uid));
+        const usersSnapshot = await getDocs(q);
+        let foundUsername = "";
+        usersSnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (docSnap.id === user.uid) {
+            foundUsername = data.userName || user.uid;
+          }
+        });
+        setMentorUsername(foundUsername || user.uid);
+        loadProjects(user.uid);
       }
-    }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (
-      !formData.name ||
-      !formData.description ||
-      !mentorName ||
-      !formData.status
-    ) {
-      toast.error("All fields are required!", {
-        position: "top-right",
-        autoClose: 3000,
-        theme: "colored",
+  const loadProjects = async (mentor: string) => {
+    try {
+      const q = query(
+        collection(db, "projects"),
+        where("Mentor", "==", mentor)
+      );
+      const querySnapshot = await getDocs(q);
+      const result: Project[] = [];
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data() as Project;
+        result.push({ id: docSnap.id, ...data });
       });
+      setProjects(result);
+    } catch (err) {
+      console.error("Error loading projects:", err);
+      toast.error("Failed to load projects", { position: "top-right" });
+    }
+  };
+
+  const uploadImage = async (file: File) => {
+    try {
+      const storageRef = ref(
+        storage,
+        `projectImages/${Date.now()}-${file.name}`
+      );
+      await uploadBytes(storageRef, file);
+      return await getDownloadURL(storageRef);
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      toast.error("Failed to upload image", { position: "top-right" });
+      throw err;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { name, description, status, file } = formData;
+
+    if (!name || !description || !status || !mentorUsername) {
+      toast.error("All fields are required!", { position: "top-right" });
       return;
     }
 
-    if (editId) {
-      // Editing existing project
-      const updatedProjects = projects.map((proj) =>
-        proj.id === editId
-          ? {
-              ...proj,
-              name: formData.name,
-              description: formData.description,
-              image: formData.image || proj.image,
-              status: formData.status,
-            }
-          : proj
-      );
-      setProjects(updatedProjects);
-      localStorage.setItem("mentorProjects", JSON.stringify(updatedProjects));
-      toast.success("Project updated!", {
-        position: "top-right",
-        autoClose: 3000,
-        theme: "colored",
+    try {
+      let imageUrl = formData.image;
+
+      if (file) {
+        imageUrl = await uploadImage(file);
+      }
+
+      if (editId) {
+        const docRef = doc(db, "projects", editId);
+        const updateData: Partial<Project> = {
+          name,
+          description,
+          status,
+          image: imageUrl,
+          Mentor: mentorName, // Use UID
+        };
+
+        // Only set isArchived if status is public (force false) or private (keep existing or false)
+        if (status === "public") {
+          updateData.isArchived = false;
+        }
+
+        await updateDoc(docRef, updateData);
+        toast.success("Project updated!", { position: "top-right" });
+      } else {
+        await addDoc(collection(db, "projects"), {
+          name,
+          description,
+          status,
+          image: imageUrl || "/placeholder.svg",
+          Mentor: mentorName, // Use UID
+          createdAt: new Date(),
+          isArchived: false,
+        });
+        toast.success("Project added!", { position: "top-right" });
+      }
+
+      setFormData({
+        name: "",
+        description: "",
+        image: "",
+        status: "private",
+        file: null,
       });
       setEditId(null);
-    } else {
-      // Adding new project
-      const newProject: Project = {
-        id: Date.now().toString(),
-        name: formData.name,
-        description: formData.description,
-        status: formData.status,
-        Mentor: mentorName,
-        image: formData.image || "/placeholder.svg",
-        createdAt: new Date(),
-      };
-      const updatedProjects = [newProject, ...projects];
-      setProjects(updatedProjects);
-      localStorage.setItem("mentorProjects", JSON.stringify(updatedProjects));
-      toast.success("Project added!", {
+      loadProjects(mentorName);
+    } catch (err) {
+      console.error("Error submitting project:", err);
+      toast.error(`Failed to submit project: ${err.message}`, {
         position: "top-right",
-        autoClose: 3000,
-        theme: "colored",
       });
     }
-
-    setFormData({ name: "", description: "", image: "", status: "private" });
   };
 
   const handleEdit = (project: Project) => {
+    if (project.isArchived) {
+      toast.warn("Cannot edit archived projects.", { position: "top-right" });
+      return;
+    }
     setEditId(project.id);
     setFormData({
       name: project.name,
       description: project.description,
       image: project.image,
       status: project.status,
+      file: null,
     });
   };
 
-  const handleDelete = (id: string) => {
-    const updatedProjects = projects.filter((proj) => proj.id !== id);
-    setProjects(updatedProjects);
-    localStorage.setItem("mentorProjects", JSON.stringify(updatedProjects));
-    toast.info("Project deleted", {
-      position: "top-right",
-      autoClose: 3000,
-      theme: "colored",
-    });
+  const handleDelete = async (id: string) => {
+    const project = projects.find((proj) => proj.id === id);
+    if (project?.isArchived) {
+      toast.warn("Cannot delete archived projects.", { position: "top-right" });
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, "projects", id));
+      toast.info("Project deleted", { position: "top-right" });
+      loadProjects(mentorName);
+    } catch (err) {
+      console.error("Error deleting project:", err);
+      toast.error("Failed to delete project", { position: "top-right" });
+    }
+  };
+
+  const handleArchive = async (id: string) => {
+    const project = projects.find((proj) => proj.id === id);
+    if (project?.status !== "private") {
+      toast.warn("Only private projects can be archived.", {
+        position: "top-right",
+      });
+      return;
+    }
+    try {
+      const docRef = doc(db, "projects", id);
+      await updateDoc(docRef, {
+        isArchived: !project?.isArchived,
+      });
+      toast.success(
+        project?.isArchived ? "Project unarchived" : "Project archived",
+        { position: "top-right" }
+      );
+      loadProjects(mentorName);
+    } catch (err) {
+      console.error("Error archiving project:", err);
+      toast.error("Failed to archive project", { position: "top-right" });
+    }
   };
 
   return (
@@ -143,10 +228,12 @@ const AddProject = () => {
           {editId ? "Edit Project" : "Add New Project"}
         </h2>
 
-        {mentorName && (
+        {mentorUsername && (
           <p className="text-sm mb-4 text-gray-600">
             Mentor:{" "}
-            <span className="font-semibold text-purple-700">{mentorName}</span>
+            <span className="font-semibold text-purple-700">
+              {mentorUsername}
+            </span>
           </p>
         )}
 
@@ -162,16 +249,12 @@ const AddProject = () => {
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                  setFormData({ ...formData, image: reader.result as string });
-                };
-                reader.readAsDataURL(file);
-              }
-            }}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                file: e.target.files?.[0] || null,
+              })
+            }
             className="w-full border border-gray-300 rounded px-3 py-2"
           />
           {formData.image && (
@@ -221,26 +304,49 @@ const AddProject = () => {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="border p-4 rounded shadow-sm bg-gray-50"
+              className={`border p-4 rounded shadow-sm ${
+                project.isArchived ? "bg-gray-200 opacity-75" : "bg-gray-50"
+              }`}
             >
               <div className="flex justify-between items-center mb-2">
                 <div>
                   <h4 className="font-bold">{project.name}</h4>
-                  <p className="text-sm text-gray-600">{project.status}</p>
+                  <div className="flex gap-2">
+                    <p className="text-sm text-gray-600">{project.status}</p>
+                    {project.isArchived && (
+                      <span className="text-sm text-red-600 font-semibold">
+                        [Archived]
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(project)}
                     className="text-blue-600 text-sm"
+                    disabled={project.isArchived}
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(project.id)}
                     className="text-red-600 text-sm"
+                    disabled={project.isArchived}
                   >
                     Delete
                   </button>
+                  {project.status === "private" && (
+                    <button
+                      onClick={() => handleArchive(project.id)}
+                      className={`text-sm ${
+                        project.isArchived
+                          ? "text-green-600"
+                          : "text-yellow-600"
+                      }`}
+                    >
+                      {project.isArchived ? "Unarchive" : "Archive"}
+                    </button>
+                  )}
                 </div>
               </div>
               <p className="text-sm text-gray-700">{project.description}</p>
