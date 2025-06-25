@@ -10,9 +10,9 @@ const LoginForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // === Check from sessionStorage ===
+    // === Check from localStorage ===
     const storedData = JSON.parse(
-      sessionStorage.getItem("signupDataList") || "[]"
+      localStorage.getItem("signupDataList") || "[]"
     );
 
     // Try to match by email or username

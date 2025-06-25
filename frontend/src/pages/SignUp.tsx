@@ -13,9 +13,12 @@ function SignUp() {
     dob: "",
     email: "",
     role: "",
+    rank: "",
     password: "",
     confirmPassword: "",
     profilePic: "",
+    description: "",
+    isActiveMember: false,
   });
 
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -45,9 +48,9 @@ function SignUp() {
       return;
     }
 
-    // Get existing accounts from sessionStorage
+    // Get existing accounts from localStorage
     const existingData = JSON.parse(
-      sessionStorage.getItem("signupDataList") || "[]"
+      localStorage.getItem("signupDataList") || "[]"
     );
 
     if (existingData.length >= 10) {
@@ -62,7 +65,7 @@ function SignUp() {
 
     // Add the new account
     const updatedData = [...existingData, formData];
-    sessionStorage.setItem("signupDataList", JSON.stringify(updatedData));
+    localStorage.setItem("signupDataList", JSON.stringify(updatedData));
 
     toast.success("Account created successfully!", {
       position: "top-right",
@@ -79,9 +82,12 @@ function SignUp() {
       dob: "",
       email: "",
       role: "",
+      rank: "",
       password: "",
       confirmPassword: "",
       profilePic: "",
+      description: "",
+      isActiveMember: false,
     });
   };
 

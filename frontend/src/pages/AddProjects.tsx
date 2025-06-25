@@ -27,9 +27,7 @@ const AddProject = () => {
   useEffect(() => {
     const userId = localStorage.getItem("data");
     if (userId) {
-      const users = JSON.parse(
-        sessionStorage.getItem("signupDataList") || "[]"
-      );
+      const users = JSON.parse(localStorage.getItem("signupDataList") || "[]");
       const currentUser = users.find((user: any) => user.userName === userId);
       if (currentUser?.role === "mentor") {
         setMentorName(currentUser.userName);

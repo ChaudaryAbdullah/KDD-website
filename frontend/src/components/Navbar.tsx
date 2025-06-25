@@ -29,8 +29,8 @@ const Navbar = () => {
       return;
     }
 
-    // === TEMPORARY MENTOR CHECK using sessionStorage ===
-    const users = JSON.parse(sessionStorage.getItem("signupDataList") || "[]");
+    // === TEMPORARY MENTOR CHECK using localStorage ===
+    const users = JSON.parse(localStorage.getItem("signupDataList") || "[]");
     const currentUser = users.find((user: any) => user.userName === userId);
 
     if (currentUser?.role === "mentor") {
