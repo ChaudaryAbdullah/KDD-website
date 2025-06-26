@@ -55,13 +55,6 @@ const LoginForm = () => {
           </button>
         </div>
 
-        <div className="text-sm text-gray-600 mb-4">
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-blue-600 hover:underline">
-            Create One
-          </Link>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
@@ -94,7 +87,15 @@ const LoginForm = () => {
             Forgot Password?
           </a>
         </div>
+
+        <div style={{ marginTop: 20 }} className="text-sm text-gray-600 mb-4">
+          Don't have an account?{" "}
+          <Link to="/signup" className="text-blue-600 hover:underline">
+            Create One
+          </Link>
+        </div>
       </div>
+
       <ToastContainer />
     </div>
   );
