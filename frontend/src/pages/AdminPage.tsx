@@ -5,16 +5,16 @@ import {
   updatePassword,
   signInWithEmailAndPassword,
 } from "firebase/auth";
-import { 
-  collection, 
-  getDocs, 
-  setDoc, 
-  doc, 
-  deleteDoc, 
-  query, 
+import {
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+  deleteDoc,
+  query,
   orderBy,
   updateDoc,
-  where 
+  where,
 } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -71,7 +71,9 @@ const AdminPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'pending' | 'notifications'>('users');
+  const [activeTab, setActiveTab] = useState<
+    "users" | "pending" | "notifications"
+  >("users");
   const [editId, setEditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     userName: "",
@@ -123,7 +125,10 @@ const AdminPage = () => {
 
   const fetchPendingUsers = async () => {
     try {
-      const q = query(collection(db, "pendingUsers"), orderBy("requestedAt", "desc"));
+      const q = query(
+        collection(db, "pendingUsers"),
+        orderBy("requestedAt", "desc")
+      );
       const snapshot = await getDocs(q);
       const pendingList: PendingUser[] = snapshot.docs.map((docSnap) => ({
         id: docSnap.id,
@@ -138,12 +143,17 @@ const AdminPage = () => {
 
   const fetchNotifications = async () => {
     try {
-      const q = query(collection(db, "adminNotifications"), orderBy("createdAt", "desc"));
+      const q = query(
+        collection(db, "adminNotifications"),
+        orderBy("createdAt", "desc")
+      );
       const snapshot = await getDocs(q);
-      const notificationsList: AdminNotification[] = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as Omit<AdminNotification, "id">),
-      }));
+      const notificationsList: AdminNotification[] = snapshot.docs.map(
+        (docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<AdminNotification, "id">),
+        })
+      );
       setNotifications(notificationsList);
     } catch (err) {
       console.error("Error fetching notifications:", err);
@@ -158,28 +168,28 @@ const AdminPage = () => {
         collection(db, "adminNotifications"),
         where("read", "==", false)
       );
-      
+
       const snapshot = await getDocs(notificationsQuery);
-      
+
       if (snapshot.docs.length > 0) {
         // Update each unread notification
-        const updatePromises = snapshot.docs.map(docSnapshot => 
+        const updatePromises = snapshot.docs.map((docSnapshot) =>
           updateDoc(doc(db, "adminNotifications", docSnapshot.id), {
             read: true,
-            readAt: new Date().toISOString()
+            readAt: new Date().toISOString(),
           })
         );
-        
+
         await Promise.all(updatePromises);
-        
+
         // Update local state immediately to reflect the changes
-        setNotifications(prevNotifications => 
-          prevNotifications.map(notification => ({
+        setNotifications((prevNotifications) =>
+          prevNotifications.map((notification) => ({
             ...notification,
-            read: true
+            read: true,
           }))
         );
-        
+
         console.log("All notifications marked as read");
       }
     } catch (error) {
@@ -188,12 +198,14 @@ const AdminPage = () => {
   };
 
   // Handle tab change - mark notifications as read when switching to notifications tab
-  const handleTabChange = async (tab: 'users' | 'pending' | 'notifications') => {
+  const handleTabChange = async (
+    tab: "users" | "pending" | "notifications"
+  ) => {
     // If switching to notifications tab, mark all as read first
-    if (tab === 'notifications' && activeTab !== 'notifications') {
+    if (tab === "notifications" && activeTab !== "notifications") {
       await markAllNotificationsAsRead();
     }
-    
+
     setActiveTab(tab);
   };
 
@@ -251,20 +263,26 @@ const AdminPage = () => {
 
       // Update notification status
       const relatedNotification = notifications.find(
-        n => n.userName === pendingUser.userName && n.status === "pending"
+        (n) => n.userName === pendingUser.userName && n.status === "pending"
       );
       if (relatedNotification) {
         await updateDoc(doc(db, "adminNotifications", relatedNotification.id), {
           status: "approved",
-          read: true
+          read: true,
         });
       }
 
-      showToast(`User ${pendingUser.userName} approved successfully!`, "success");
-      
+      showToast(
+        `User ${pendingUser.userName} approved successfully!`,
+        "success"
+      );
+
       // Refresh data
-      await Promise.all([fetchUsers(), fetchPendingUsers(), fetchNotifications()]);
-      
+      await Promise.all([
+        fetchUsers(),
+        fetchPendingUsers(),
+        fetchNotifications(),
+      ]);
     } catch (err) {
       console.error("Error approving user:", err);
       showToast(`Failed to approve user: ${err.message}`, "error");
@@ -278,20 +296,22 @@ const AdminPage = () => {
 
       // Update notification status
       const relatedNotification = notifications.find(
-        n => n.userName === pendingUser.userName && n.status === "pending"
+        (n) => n.userName === pendingUser.userName && n.status === "pending"
       );
       if (relatedNotification) {
         await updateDoc(doc(db, "adminNotifications", relatedNotification.id), {
           status: "rejected",
-          read: true
+          read: true,
         });
       }
 
-      showToast(`User ${pendingUser.userName} rejected successfully!`, "success");
-      
+      showToast(
+        `User ${pendingUser.userName} rejected successfully!`,
+        "success"
+      );
+
       // Refresh data
       await Promise.all([fetchPendingUsers(), fetchNotifications()]);
-      
     } catch (err) {
       console.error("Error rejecting user:", err);
       showToast(`Failed to reject user: ${err.message}`, "error");
@@ -302,12 +322,12 @@ const AdminPage = () => {
     try {
       await updateDoc(doc(db, "adminNotifications", notificationId), {
         read: true,
-        readAt: new Date().toISOString()
+        readAt: new Date().toISOString(),
       });
-      
+
       // Update local state
-      setNotifications(prevNotifications =>
-        prevNotifications.map(notification =>
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notification) =>
           notification.id === notificationId
             ? { ...notification, read: true }
             : notification
@@ -315,6 +335,16 @@ const AdminPage = () => {
       );
     } catch (err) {
       console.error("Error marking notification as read:", err);
+    }
+  };
+
+  const handleMarkAsReadAndRemove = async (notificationId: string) => {
+    try {
+      await deleteDoc(doc(db, "adminNotifications", notificationId));
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    } catch (err) {
+      console.error("Error deleting notification:", err);
+      showToast("Failed to remove notification", "error");
     }
   };
 
@@ -494,7 +524,10 @@ const AdminPage = () => {
   };
 
   // Calculate unread notifications count (only for display purposes)
-  const unreadNotificationsCount = activeTab === 'notifications' ? 0 : notifications.filter(n => !n.read).length;
+  const unreadNotificationsCount =
+    activeTab === "notifications"
+      ? 0
+      : notifications.filter((n) => !n.read).length;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br bg-gradient-to-b from-violet-800 via-purple-700 to-white py-8">
@@ -505,21 +538,21 @@ const AdminPage = () => {
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200">
           <button
-            onClick={() => handleTabChange('users')}
+            onClick={() => handleTabChange("users")}
             className={`flex-1 py-4 px-6 text-center font-semibold ${
-              activeTab === 'users'
-                ? 'border-b-2 border-purple-600 text-purple-600 bg-purple-50'
-                : 'text-gray-600 hover:text-purple-600'
+              activeTab === "users"
+                ? "border-b-2 border-purple-600 text-purple-600 bg-purple-50"
+                : "text-gray-600 hover:text-purple-600"
             }`}
           >
             Users ({users.length})
           </button>
           <button
-            onClick={() => handleTabChange('pending')}
+            onClick={() => handleTabChange("pending")}
             className={`flex-1 py-4 px-6 text-center font-semibold relative ${
-              activeTab === 'pending'
-                ? 'border-b-2 border-purple-600 text-purple-600 bg-purple-50'
-                : 'text-gray-600 hover:text-purple-600'
+              activeTab === "pending"
+                ? "border-b-2 border-purple-600 text-purple-600 bg-purple-50"
+                : "text-gray-600 hover:text-purple-600"
             }`}
           >
             Pending Approvals ({pendingUsers.length})
@@ -530,11 +563,11 @@ const AdminPage = () => {
             )}
           </button>
           <button
-            onClick={() => handleTabChange('notifications')}
+            onClick={() => handleTabChange("notifications")}
             className={`flex-1 py-4 px-6 text-center font-semibold relative ${
-              activeTab === 'notifications'
-                ? 'border-b-2 border-purple-600 text-purple-600 bg-purple-50'
-                : 'text-gray-600 hover:text-purple-600'
+              activeTab === "notifications"
+                ? "border-b-2 border-purple-600 text-purple-600 bg-purple-50"
+                : "text-gray-600 hover:text-purple-600"
             }`}
           >
             Notifications ({notifications.length})
@@ -548,7 +581,7 @@ const AdminPage = () => {
 
         <div className="flex flex-col md:flex-row">
           {/* Form Section - Only show for users tab */}
-          {activeTab === 'users' && (
+          {activeTab === "users" && (
             <div className="flex-1 p-8 md:p-12 bg-white">
               <div className="w-16 h-1 bg-purple-600 rounded mb-6" />
               <h2 className="text-2xl font-bold mb-6 text-purple-700">
@@ -666,7 +699,10 @@ const AdminPage = () => {
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) =>
-                      setFormData({ ...formData, confirmPassword: e.target.value })
+                      setFormData({
+                        ...formData,
+                        confirmPassword: e.target.value,
+                      })
                     }
                     className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
                   />
@@ -716,7 +752,10 @@ const AdminPage = () => {
                     id="isActiveMember"
                     checked={formData.isActiveMember}
                     onChange={(e) =>
-                      setFormData({ ...formData, isActiveMember: e.target.checked })
+                      setFormData({
+                        ...formData,
+                        isActiveMember: e.target.checked,
+                      })
                     }
                     className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                   />
@@ -749,20 +788,23 @@ const AdminPage = () => {
                 </div>
               </div>
             </div>
-          )} 
-          
+          )}
 
           {/* Right Panel - Content based on active tab */}
-          <div className={`${activeTab === 'users' ? 'flex-1' : 'w-full'} bg-gray-50 p-8 md:p-12 border-l border-gray-100`}>
+          <div
+            className={`${
+              activeTab === "users" ? "flex-1" : "w-full"
+            } bg-gray-50 p-8 md:p-12 border-l border-gray-100`}
+          >
             <div className="w-16 h-1 bg-purple-600 rounded mb-6" />
-            
+
             {/* Users Tab */}
-            {activeTab === 'users' && (
+            {activeTab === "users" && (
               <>
                 <h3 className="text-xl font-bold mb-6 text-purple-700">
                   Existing Users
                 </h3>
-                <div className="space-y-4 max-h-[75%] overflow-y-auto">
+                <div className="space-y-4 overflow-y-auto max-h-[60vh] md:max-h-[70vh] xl:max-h-[100vh]">
                   {users.map((user) => (
                     <div
                       key={user.uid}
@@ -787,9 +829,12 @@ const AdminPage = () => {
                             {user.isActiveMember ? "Active" : "Inactive"}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-1">{user.email}</p>
+                        <p className="text-sm text-gray-600 mb-1">
+                          {user.email}
+                        </p>
                         <p className="text-sm text-gray-500">
-                          {user.firstName} {user.lastName} • {user.role} • {user.rank}
+                          {user.firstName} {user.lastName} • {user.role} •{" "}
+                          {user.rank}
                         </p>
                       </div>
                       <button
@@ -810,7 +855,7 @@ const AdminPage = () => {
             )}
 
             {/* Pending Users Tab */}
-            {activeTab === 'pending' && (
+            {activeTab === "pending" && (
               <>
                 <h3 className="text-xl font-bold mb-6 text-purple-700">
                   Pending User Approvals
@@ -836,14 +881,17 @@ const AdminPage = () => {
                                 Pending
                               </span>
                             </div>
-                            <p className="text-sm text-gray-600 mb-1">{user.email}</p>
+                            <p className="text-sm text-gray-600 mb-1">
+                              {user.email}
+                            </p>
                             <p className="text-sm text-gray-500 mb-2">
                               {user.firstName} {user.lastName} • {user.role}
                             </p>
                             <p className="text-xs text-gray-400">
-                              Requested: {new Date(user.requestedAt).toLocaleDateString()}
+                              Requested:{" "}
+                              {new Date(user.requestedAt).toLocaleDateString()}
                             </p>
-{user.description && (
+                            {user.description && (
                               <p className="text-sm text-gray-600 mt-1">
                                 Description: {user.description}
                               </p>
@@ -872,7 +920,7 @@ const AdminPage = () => {
             )}
 
             {/* Notifications Tab */}
-            {activeTab === 'notifications' && (
+            {activeTab === "notifications" && (
               <>
                 <h3 className="text-xl font-bold mb-6 text-purple-700">
                   Admin Notifications
@@ -896,13 +944,15 @@ const AdminPage = () => {
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-2">
                               <p className="font-semibold text-gray-900">
-                                {notification.type === 'user_registration' ? 'New User Registration' : notification.type}
+                                {notification.type === "user_registration"
+                                  ? "New User Registration"
+                                  : notification.type}
                               </p>
                               <span
                                 className={`px-2 py-1 text-xs rounded-full ${
-                                  notification.status === 'pending'
+                                  notification.status === "pending"
                                     ? "bg-purple-100 text-purple-800"
-                                    : notification.status === 'approved'
+                                    : notification.status === "approved"
                                     ? "bg-green-100 text-green-800"
                                     : "bg-red-100 text-red-800"
                                 }`}
@@ -914,10 +964,12 @@ const AdminPage = () => {
                               )}
                             </div>
                             <p className="text-sm text-gray-600 mb-1">
-                              User: {notification.userName} ({notification.email})
+                              User: {notification.userName} (
+                              {notification.email})
                             </p>
                             <p className="text-sm text-gray-600 mb-1">
-                              Name: {notification.firstName} {notification.lastName}
+                              Name: {notification.firstName}{" "}
+                              {notification.lastName}
                             </p>
                             <p className="text-sm text-gray-600 mb-2">
                               Role: {notification.role}
@@ -926,17 +978,19 @@ const AdminPage = () => {
                               {notification.message}
                             </p>
                             <p className="text-xs text-gray-400">
-                              {new Date(notification.createdAt).toLocaleString()}
+                              {new Date(
+                                notification.createdAt
+                              ).toLocaleString()}
                             </p>
                           </div>
-                          {!notification.read && (
-                            <button
-                              onClick={() => markNotificationAsRead(notification.id)}
-                              className="ml-4 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                            >
-                              Mark as Read
-                            </button>
-                          )}
+                          <button
+                            onClick={() =>
+                              handleMarkAsReadAndRemove(notification.id)
+                            }
+                            className="ml-4 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                          >
+                            Mark as Read
+                          </button>
                         </div>
                       </div>
                     ))
