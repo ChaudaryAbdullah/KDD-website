@@ -19,6 +19,7 @@ import AddProjectAdmin from "./pages/AddAdminProjects.tsx";
 import ViewUsers from "./pages/ViewUsers.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import UserProfilePage from "./pages/UserProfilePage.tsx";
+import ViewProjects from "./pages/ViewProjects.tsx";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -37,6 +38,7 @@ const AnimatedRoutes = () => {
         <Route path="/viewUsers" element={<ViewUsers />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile/:uid" element={<UserProfilePage />} />
+        <Route path="/viewProjects" element={<ViewProjects />} />
       </Routes>
     </AnimatePresence>
   );

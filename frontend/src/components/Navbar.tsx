@@ -76,7 +76,7 @@ const Navbar = () => {
   };
 
   const handleViewMentor = () => {
-    navigate("/addproject");
+    navigate("/mentorProject");
     setIsDropdownOpen(false);
   };
 
@@ -201,6 +201,15 @@ const Navbar = () => {
                     </button>
                     <button
                       onClick={() => {
+                        navigate("/viewProjects");
+                        setIsDropdownOpen(false);
+                      }}
+                      className="block w-full px-4 py-2 text-left hover:bg-gray-100"
+                    >
+                      View All Projects
+                    </button>
+                    <button
+                      onClick={() => {
                         navigate("/admin");
                         setIsDropdownOpen(false);
                       }}
@@ -319,6 +328,24 @@ const Navbar = () => {
                         <button
                           onClick={() => {
                             setIsOpen(false);
+                            navigate("/viewUsers");
+                          }}
+                          className="w-full text-left text-gray-800 hover:text-blue-600"
+                        >
+                          View All Users
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsOpen(false);
+                            navigate("/viewProjects");
+                          }}
+                          className="w-full text-left text-gray-800 hover:text-blue-600"
+                        >
+                          View All Projects
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsOpen(false);
                             navigate("/admin");
                           }}
                           className="w-full text-left text-gray-800 hover:text-blue-600"
@@ -328,7 +355,7 @@ const Navbar = () => {
                         <button
                           onClick={() => {
                             setIsOpen(false);
-                            navigate("/addadminprojects");
+                            navigate("/adminProject");
                           }}
                           className="w-full text-left text-gray-800 hover:text-blue-600"
                         >
