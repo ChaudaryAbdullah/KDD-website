@@ -27,7 +27,7 @@ interface Project {
   isArchived: boolean;
 }
 
-const AddProject = () => {
+const MentorProjects = () => {
   const [mentorName, setMentorName] = useState("");
   const [mentorUsername, setMentorUsername] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
@@ -359,4 +359,4 @@ const AddProject = () => {
   );
 };
 
-export default AddProject;
+export default MentorProjects;
