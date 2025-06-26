@@ -3,9 +3,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { auth, db } from "../firebase"; // adjust this path if needed
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { setDoc, doc } from "firebase/firestore";
+import { db } from "../firebase"; // adjust this path if needed
+import { setDoc, doc, collection, getDocs, addDoc } from "firebase/firestore";
 
 function SignUp() {
   const navigate = useNavigate();
@@ -42,6 +41,22 @@ function SignUp() {
     if (e.key === "Escape") handleClose();
   };
 
+  const checkDuplicateUser = async (email: string, userName: string) => {
+    // Check in existing users
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    const existingUser = usersSnapshot.docs.find(
+      (doc) => doc.data().email === email || doc.data().userName === userName
+    );
+
+    // Check in pending users
+    const pendingSnapshot = await getDocs(collection(db, "pendingUsers"));
+    const pendingUser = pendingSnapshot.docs.find(
+      (doc) => doc.data().email === email || doc.data().userName === userName
+    );
+
+    return existingUser || pendingUser;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -52,17 +67,26 @@ function SignUp() {
       return;
     }
 
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-      const user = userCredential.user;
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
 
-      // Save user data to Firestore under uid
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
+    try {
+      // Check for duplicate users
+      const duplicate = await checkDuplicateUser(formData.email, formData.userName);
+      if (duplicate) {
+        setError("Username or email already exists!");
+        toast.error("Username or email already exists!", {
+          position: "top-right",
+          autoClose: 3000,
+          theme: "colored",
+        });
+        return;
+      }
+
+      // Save user data to pendingUsers collection
+      await addDoc(collection(db, "pendingUsers"), {
         userName: formData.userName,
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -71,15 +95,31 @@ function SignUp() {
         email: formData.email,
         role: formData.role,
         rank: formData.rank,
+        password: formData.password, // Store temporarily for approval
         profilePic: formData.profilePic,
         description: formData.description,
         isActiveMember: formData.isActiveMember,
-        createdAt: new Date().toISOString(),
+        requestedAt: new Date().toISOString(),
+        status: "pending"
       });
 
-      toast.success("Account created successfully!", {
+      // Create admin notification
+      await addDoc(collection(db, "adminNotifications"), {
+        type: "user_signup_request",
+        userName: formData.userName,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role,
+        message: `New user ${formData.firstName} ${formData.lastName} (${formData.userName}) has requested to join as ${formData.role}`,
+        createdAt: new Date().toISOString(),
+        read: false,
+        status: "pending"
+      });
+
+      toast.success("Signup request submitted successfully! Please wait for admin approval.", {
         position: "top-right",
-        autoClose: 3000,
+        autoClose: 5000,
         theme: "colored",
       });
 
@@ -99,7 +139,9 @@ function SignUp() {
         isActiveMember: false,
       });
 
-      navigate("/login");
+      // Show success message instead of navigating
+      setSuccessMessage("Your signup request has been submitted and is pending admin approval. You will be notified once approved.");
+      
     } catch (error: any) {
       setError(error.message);
       toast.error("Signup failed: " + error.message, {
@@ -128,13 +170,14 @@ function SignUp() {
         </div>
 
         <p className="text-sm text-gray-600 mb-4">
-          Creating an account allows you to access your order history and make
-          new orders on any device.
+          Creating an account requires admin approval. You will be notified once your request is reviewed.
         </p>
 
         {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
         {successMessage && (
-          <p className="text-green-600 text-sm mb-3">{successMessage}</p>
+          <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
+            <p className="text-green-800 text-sm">{successMessage}</p>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -269,7 +312,7 @@ function SignUp() {
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
           >
-            Sign Up
+            Submit Signup Request
           </button>
         </form>
       </div>
