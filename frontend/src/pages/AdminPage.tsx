@@ -13,7 +13,8 @@ import {
   deleteDoc, 
   query, 
   orderBy,
-  updateDoc 
+  updateDoc,
+  where 
 } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -150,6 +151,52 @@ const AdminPage = () => {
     }
   };
 
+  // Function to mark all notifications as read
+  const markAllNotificationsAsRead = async () => {
+    try {
+      const notificationsQuery = query(
+        collection(db, "adminNotifications"),
+        where("read", "==", false)
+      );
+      
+      const snapshot = await getDocs(notificationsQuery);
+      
+      if (snapshot.docs.length > 0) {
+        // Update each unread notification
+        const updatePromises = snapshot.docs.map(docSnapshot => 
+          updateDoc(doc(db, "adminNotifications", docSnapshot.id), {
+            read: true,
+            readAt: new Date().toISOString()
+          })
+        );
+        
+        await Promise.all(updatePromises);
+        
+        // Update local state immediately to reflect the changes
+        setNotifications(prevNotifications => 
+          prevNotifications.map(notification => ({
+            ...notification,
+            read: true
+          }))
+        );
+        
+        console.log("All notifications marked as read");
+      }
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+    }
+  };
+
+  // Handle tab change - mark notifications as read when switching to notifications tab
+  const handleTabChange = async (tab: 'users' | 'pending' | 'notifications') => {
+    // If switching to notifications tab, mark all as read first
+    if (tab === 'notifications' && activeTab !== 'notifications') {
+      await markAllNotificationsAsRead();
+    }
+    
+    setActiveTab(tab);
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchPendingUsers();
@@ -254,9 +301,18 @@ const AdminPage = () => {
   const markNotificationAsRead = async (notificationId: string) => {
     try {
       await updateDoc(doc(db, "adminNotifications", notificationId), {
-        read: true
+        read: true,
+        readAt: new Date().toISOString()
       });
-      fetchNotifications();
+      
+      // Update local state
+      setNotifications(prevNotifications =>
+        prevNotifications.map(notification =>
+          notification.id === notificationId
+            ? { ...notification, read: true }
+            : notification
+        )
+      );
     } catch (err) {
       console.error("Error marking notification as read:", err);
     }
@@ -437,7 +493,8 @@ const AdminPage = () => {
     });
   };
 
-  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+  // Calculate unread notifications count (only for display purposes)
+  const unreadNotificationsCount = activeTab === 'notifications' ? 0 : notifications.filter(n => !n.read).length;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br bg-gradient-to-b from-violet-800 via-purple-700 to-white py-8">
@@ -448,7 +505,7 @@ const AdminPage = () => {
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200">
           <button
-            onClick={() => setActiveTab('users')}
+            onClick={() => handleTabChange('users')}
             className={`flex-1 py-4 px-6 text-center font-semibold ${
               activeTab === 'users'
                 ? 'border-b-2 border-purple-600 text-purple-600 bg-purple-50'
@@ -458,11 +515,11 @@ const AdminPage = () => {
             Users ({users.length})
           </button>
           <button
-            onClick={() => setActiveTab('pending')}
+            onClick={() => handleTabChange('pending')}
             className={`flex-1 py-4 px-6 text-center font-semibold relative ${
               activeTab === 'pending'
-                ? 'border-b-2 border-orange-600 text-orange-600 bg-orange-50'
-                : 'text-gray-600 hover:text-orange-600'
+                ? 'border-b-2 border-purple-600 text-purple-600 bg-purple-50'
+                : 'text-gray-600 hover:text-purple-600'
             }`}
           >
             Pending Approvals ({pendingUsers.length})
@@ -473,11 +530,11 @@ const AdminPage = () => {
             )}
           </button>
           <button
-            onClick={() => setActiveTab('notifications')}
+            onClick={() => handleTabChange('notifications')}
             className={`flex-1 py-4 px-6 text-center font-semibold relative ${
               activeTab === 'notifications'
-                ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-blue-600'
+                ? 'border-b-2 border-purple-600 text-purple-600 bg-purple-50'
+                : 'text-gray-600 hover:text-purple-600'
             }`}
           >
             Notifications ({notifications.length})
@@ -705,7 +762,7 @@ const AdminPage = () => {
                 <h3 className="text-xl font-bold mb-6 text-purple-700">
                   Existing Users
                 </h3>
-                <div className="space-y-4 max-h-[32rem] overflow-y-auto">
+                <div className="space-y-4 max-h-[75%] overflow-y-auto">
                   {users.map((user) => (
                     <div
                       key={user.uid}
@@ -755,7 +812,7 @@ const AdminPage = () => {
             {/* Pending Users Tab */}
             {activeTab === 'pending' && (
               <>
-                <h3 className="text-xl font-bold mb-6 text-orange-700">
+                <h3 className="text-xl font-bold mb-6 text-purple-700">
                   Pending User Approvals
                 </h3>
                 <div className="space-y-4 max-h-[32rem] overflow-y-auto">
@@ -767,7 +824,7 @@ const AdminPage = () => {
                     pendingUsers.map((user) => (
                       <div
                         key={user.id}
-                        className="p-4 border rounded-lg bg-white border-orange-200 hover:bg-orange-50 transition-colors"
+                        className="p-4 border rounded-lg bg-white border-purple-200 hover:bg-purple-50 transition-colors"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -775,7 +832,7 @@ const AdminPage = () => {
                               <p className="font-semibold text-gray-900">
                                 {user.userName}
                               </p>
-                              <span className="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">
+                              <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
                                 Pending
                               </span>
                             </div>
@@ -786,15 +843,13 @@ const AdminPage = () => {
                             <p className="text-xs text-gray-400">
                               Requested: {new Date(user.requestedAt).toLocaleDateString()}
                             </p>
-                            {user.profilePic && (
-                              <img
-                                src={user.profilePic}
-                                alt={`${user.firstName} ${user.lastName}`}
-                                className="mt-2 h-16 w-16 object-cover rounded-lg border"
-                              />
+{user.description && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                Description: {user.description}
+                              </p>
                             )}
                           </div>
-                          <div className="flex flex-col space-y-2 ml-4">
+                          <div className="flex space-x-2 ml-4">
                             <button
                               onClick={() => approveUser(user)}
                               className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-semibold hover:bg-green-700 transition-colors"
@@ -819,46 +874,54 @@ const AdminPage = () => {
             {/* Notifications Tab */}
             {activeTab === 'notifications' && (
               <>
-                <h3 className="text-xl font-bold mb-6 text-blue-700">
+                <h3 className="text-xl font-bold mb-6 text-purple-700">
                   Admin Notifications
                 </h3>
                 <div className="space-y-4 max-h-[32rem] overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
-                      No notifications
+                      No notifications available
                     </div>
                   ) : (
                     notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-4 border rounded-lg transition-colors cursor-pointer ${
+                        className={`p-4 border rounded-lg transition-colors ${
                           notification.read
                             ? "bg-white border-gray-200"
                             : "bg-blue-50 border-blue-200"
                         }`}
-                        onClick={() => markNotificationAsRead(notification.id)}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-2">
                               <p className="font-semibold text-gray-900">
-                                {notification.type === 'user_signup_request' ? 'New User Request' : notification.type}
+                                {notification.type === 'user_registration' ? 'New User Registration' : notification.type}
                               </p>
-                              {!notification.read && (
-                                <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                              )}
                               <span
                                 className={`px-2 py-1 text-xs rounded-full ${
                                   notification.status === 'pending'
-                                    ? 'bg-orange-100 text-orange-800'
+                                    ? "bg-purple-100 text-purple-800"
                                     : notification.status === 'approved'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
                                 }`}
                               >
                                 {notification.status}
                               </span>
+                              {!notification.read && (
+                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                              )}
                             </div>
+                            <p className="text-sm text-gray-600 mb-1">
+                              User: {notification.userName} ({notification.email})
+                            </p>
+                            <p className="text-sm text-gray-600 mb-1">
+                              Name: {notification.firstName} {notification.lastName}
+                            </p>
+                            <p className="text-sm text-gray-600 mb-2">
+                              Role: {notification.role}
+                            </p>
                             <p className="text-sm text-gray-700 mb-2">
                               {notification.message}
                             </p>
@@ -866,6 +929,14 @@ const AdminPage = () => {
                               {new Date(notification.createdAt).toLocaleString()}
                             </p>
                           </div>
+                          {!notification.read && (
+                            <button
+                              onClick={() => markNotificationAsRead(notification.id)}
+                              className="ml-4 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                            >
+                              Mark as Read
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))
