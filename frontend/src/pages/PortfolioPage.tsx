@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 
 // Types
 interface UserProfile {
+  uid: string; // Added uid for navigation
   userName: string;
   firstName: string;
   lastName: string;
@@ -141,16 +143,28 @@ function ProfileCard({
   showInactiveLabel?: boolean;
 }) {
   const rankInfo = getRankInfo(user.rank);
+  const navigate = useNavigate();
+  const isClickable = user.isActiveMember && user.uid;
   return (
     <motion.div
-      whileHover={{ scale: 1.06, boxShadow: "0 8px 32px rgba(80,0,120,0.12)" }}
+      whileHover={
+        isClickable
+          ? { scale: 1.06, boxShadow: "0 8px 32px rgba(80,0,120,0.12)" }
+          : {}
+      }
       className={`bg-gradient-to-br ${
         rankInfo.color
       } p-6 rounded-2xl shadow-xl flex flex-col items-center border-2 ${
         rankInfo.borderColor
       } transition-all duration-200 ${
-        !user.isActiveMember ? "opacity-75" : ""
+        !user.isActiveMember
+          ? "opacity-75"
+          : isClickable
+          ? "cursor-pointer hover:ring-4 hover:ring-purple-300"
+          : ""
       } min-w-[250px] max-w-full sm:min-w-[250px] sm:max-w-[300px] md:min-w-[300px] md:max-w-[400px] w-full`}
+      onClick={() => isClickable && navigate(`/profile/${user.uid}`)}
+      style={{ pointerEvents: isClickable ? "auto" : "none" }}
     >
       <div className="relative mb-4">
         <img
@@ -385,12 +399,12 @@ export default function PortfolioPage() {
         const users: UserProfile[] = [];
         const mentorUidToUsername: Record<string, string> = {};
 
-        usersSnapshot.forEach((doc) => {
-          const userData = doc.data() as UserProfile;
-          users.push(userData);
+        usersSnapshot.forEach((docSnap) => {
+          const userData = docSnap.data() as Omit<UserProfile, "uid">;
+          users.push({ ...userData, uid: docSnap.id }); // Attach uid
           // Map UID to username if UID is present
-          if ((doc as any).id && userData.userName) {
-            mentorUidToUsername[(doc as any).id] = userData.userName;
+          if (docSnap.id && userData.userName) {
+            mentorUidToUsername[docSnap.id] = userData.userName;
           }
         });
 

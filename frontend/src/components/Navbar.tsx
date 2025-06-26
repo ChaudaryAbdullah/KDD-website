@@ -80,6 +80,11 @@ const Navbar = () => {
     setIsDropdownOpen(false);
   };
 
+  const handleViewDashboard = () => {
+    navigate("/dashboard");
+    setIsDropdownOpen(false);
+  };
+
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Portfolio", path: "/portfolio" },
@@ -221,6 +226,15 @@ const Navbar = () => {
                     Add Projects
                   </button>
                 ) : null}
+
+                {!isSuperAdmin ? (
+                  <button
+                    onClick={handleViewDashboard}
+                    className="block w-full px-4 py-2 text-left hover:bg-gray-100"
+                  >
+                    Dashboard
+                  </button>
+                ) : null}
                 <button
                   onClick={handleSignOut}
                   className="block w-full px-4 py-2 text-left hover:bg-gray-100 text-red-500"
@@ -330,6 +344,18 @@ const Navbar = () => {
                         className="w-full text-left text-gray-800 hover:text-blue-600"
                       >
                         Add Projects
+                      </button>
+                    ) : null}
+
+                    {!isSuperAdmin ? (
+                      <button
+                        onClick={() => {
+                          setIsOpen(false);
+                          handleViewDashboard();
+                        }}
+                        className="w-full text-left text-gray-800 hover:text-blue-600"
+                      >
+                        Dashboard
                       </button>
                     ) : null}
                     <button
