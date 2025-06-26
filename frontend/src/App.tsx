@@ -13,8 +13,9 @@ import PortfolioPage from "./pages/PortfolioPage";
 import Contact from "./pages/Contact";
 import LoginForm from "./pages/Login";
 import SignUp from "./pages/SignUp";
-import AddProject from "./pages/addProjects";
+import AddProject from "./pages/AddProjects";
 import AdminPage from "./pages/AdminPage.tsx";
+import ViewUsers from "./pages/ViewUsers.tsx";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -29,6 +30,7 @@ const AnimatedRoutes = () => {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/addproject" element={<AddProject />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/viewusers" element={<ViewUsers />} />
       </Routes>
     </AnimatePresence>
   );
