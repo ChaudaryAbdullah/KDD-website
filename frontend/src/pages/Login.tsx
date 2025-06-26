@@ -11,20 +11,34 @@ const LoginForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast.success("Login Successful!", {
-        position: "top-right",
-        autoClose: 3000,
-        theme: "colored",
-      });
-      navigate("/");
-    } catch (error: any) {
-      toast.error(`Login failed: ${error.message}`, {
-        position: "top-right",
-        autoClose: 3000,
-        theme: "colored",
-      });
+
+    if (email === "admin@gmail.com" && password === "admin@786") {
+      // Set super admin flag
+      localStorage.setItem("isSuperAdmin", "true");
+      // Optionally, set a dummy user object for UI
+      localStorage.setItem(
+        "superAdminUser",
+        JSON.stringify({ userName: "admin", email: "admin@gmail.com" })
+      );
+      // Redirect to admin dashboard or home
+      navigate("/viewusers");
+      return;
+    } else {
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast.success("Login Successful!", {
+          position: "top-right",
+          autoClose: 3000,
+          theme: "colored",
+        });
+        navigate("/");
+      } catch (error: any) {
+        toast.error(`Login failed: ${error.message}`, {
+          position: "top-right",
+          autoClose: 3000,
+          theme: "colored",
+        });
+      }
     }
   };
 

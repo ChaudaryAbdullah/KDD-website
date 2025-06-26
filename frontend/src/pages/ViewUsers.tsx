@@ -45,9 +45,12 @@ const ViewUsers = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch mentors
-      const mentorsQuery = query(collection(db, "users"), where("role", "==", "mentor"));
+      const mentorsQuery = query(
+        collection(db, "users"),
+        where("role", "==", "mentor")
+      );
       const mentorsSnapshot = await getDocs(mentorsQuery);
       const mentorsList: User[] = mentorsSnapshot.docs.map((docSnap) => ({
         uid: docSnap.id,
@@ -56,7 +59,10 @@ const ViewUsers = () => {
       setMentors(mentorsList);
 
       // Fetch students
-      const studentsQuery = query(collection(db, "users"), where("role", "==", "student"));
+      const studentsQuery = query(
+        collection(db, "users"),
+        where("role", "==", "student")
+      );
       const studentsSnapshot = await getDocs(studentsQuery);
       const studentsList: User[] = studentsSnapshot.docs.map((docSnap) => ({
         uid: docSnap.id,
@@ -99,7 +105,13 @@ const ViewUsers = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const UserDetailModal = ({ user, onClose }: { user: User; onClose: () => void }) => (
+  const UserDetailModal = ({
+    user,
+    onClose,
+  }: {
+    user: User;
+    onClose: () => void;
+  }) => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-lg">
         <div className="p-8">
@@ -113,8 +125,10 @@ const ViewUsers = () => {
               ×
             </button>
           </div>
-          
-          <h2 className="text-2xl font-bold mb-6 text-purple-700">User Details</h2>
+
+          <h2 className="text-2xl font-bold mb-6 text-purple-700">
+            User Details
+          </h2>
 
           {/* User Info */}
           <div className="flex items-start space-x-6 mb-6">
@@ -126,7 +140,8 @@ const ViewUsers = () => {
               />
             ) : (
               <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-semibold text-2xl border-4 border-gray-200 shadow">
-                {user.firstName?.charAt(0) || ""}{user.lastName?.charAt(0) || ""}
+                {user.firstName?.charAt(0) || ""}
+                {user.lastName?.charAt(0) || ""}
               </div>
             )}
 
@@ -145,16 +160,18 @@ const ViewUsers = () => {
                   {user.isActiveMember ? "Active Member" : "Inactive Member"}
                 </span>
               </div>
-              
+
               <p className="text-gray-600 mb-1">@{user.userName}</p>
               <p className="text-gray-600 mb-2">{user.email}</p>
-              
+
               <div className="flex items-center space-x-2 mb-2">
-                <span className={`px-3 py-1 text-sm rounded-full font-medium ${
-                  user.role === 'mentor' 
-                    ? 'bg-purple-100 text-purple-800' 
-                    : 'bg-blue-100 text-blue-800'
-                }`}>
+                <span
+                  className={`px-3 py-1 text-sm rounded-full font-medium ${
+                    user.role === "mentor"
+                      ? "bg-purple-100 text-purple-800"
+                      : "bg-blue-100 text-blue-800"
+                  }`}
+                >
                   {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                 </span>
                 <span className="text-gray-400">•</span>
@@ -191,7 +208,7 @@ const ViewUsers = () => {
                 />
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Username
@@ -203,7 +220,7 @@ const ViewUsers = () => {
                 placeholder="Username"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -215,7 +232,7 @@ const ViewUsers = () => {
                 placeholder="Email"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Address
@@ -227,7 +244,7 @@ const ViewUsers = () => {
                 placeholder="Address"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date of Birth
@@ -239,7 +256,7 @@ const ViewUsers = () => {
                 placeholder="Date of Birth"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -264,7 +281,7 @@ const ViewUsers = () => {
                 />
               </div>
             </div>
-            
+
             {user.description && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -279,7 +296,7 @@ const ViewUsers = () => {
                 />
               </div>
             )}
-            
+
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -291,10 +308,14 @@ const ViewUsers = () => {
                 Active Member
               </label>
             </div>
-            
+
             <div className="text-xs text-gray-400 pt-2 border-t">
-              <p><strong>User ID:</strong> {user.uid}</p>
-              <p><strong>Joined:</strong> {formatDate(user.createdAt)}</p>
+              <p>
+                <strong>User ID:</strong> {user.uid}
+              </p>
+              <p>
+                <strong>Joined:</strong> {formatDate(user.createdAt)}
+              </p>
             </div>
           </div>
         </div>
@@ -315,28 +336,40 @@ const ViewUsers = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-800 via-purple-700 to-white py-8">
-      <div className="container mx-auto px-4" style={{ marginTop: 100, marginBottom: 100 }}>
+      <div
+        className="container mx-auto px-4"
+        style={{ marginTop: 100, marginBottom: 100 }}
+      >
         <div className="w-full max-w-7xl bg-white rounded-2xl shadow-lg overflow-hidden mx-auto">
           {/* Header */}
-          <div className="text-center p-8 bg-gradient-to-r from-purple-600 to-blue-600">
+          <div className="text-center p-8 bg-gradient-to-r from-purple-700 to-purple-500">
             <div className="w-16 h-1 bg-white rounded mb-6 mx-auto" />
-            <h1 className="text-4xl font-bold text-white mb-2">Users Directory</h1>
-            <p className="text-purple-100">Browse our community of mentors and students</p>
+            <h1 className="text-4xl font-bold text-white mb-2">
+              Users Directory
+            </h1>
+            <p className="text-purple-100">
+              Browse our community of mentors and students
+            </p>
           </div>
 
           {/* Stats */}
           <div className="flex justify-center space-x-8 p-6 bg-gray-50 border-b border-gray-200">
             <div className="text-center">
-              <h3 className="text-2xl font-bold text-purple-600">{mentors.length}</h3>
+              <h3 className="text-2xl font-bold text-purple-600">
+                {mentors.length}
+              </h3>
               <p className="text-gray-600">Mentors</p>
             </div>
             <div className="text-center">
-              <h3 className="text-2xl font-bold text-blue-600">{students.length}</h3>
+              <h3 className="text-2xl font-bold text-blue-600">
+                {students.length}
+              </h3>
               <p className="text-gray-600">Students</p>
             </div>
             <div className="text-center">
               <h3 className="text-2xl font-bold text-green-600">
-                {mentors.filter(m => m.isActiveMember).length + students.filter(s => s.isActiveMember).length}
+                {mentors.filter((m) => m.isActiveMember).length +
+                  students.filter((s) => s.isActiveMember).length}
               </h3>
               <p className="text-gray-600">Active Members</p>
             </div>
@@ -350,13 +383,23 @@ const ViewUsers = () => {
               <h2 className="text-2xl font-bold mb-6 text-purple-700">
                 Mentors ({mentors.length})
               </h2>
-              
+
               <div className="space-y-4 max-h-[32rem] overflow-y-auto">
                 {mentors.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                      <svg
+                        className="w-8 h-8 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                        />
                       </svg>
                     </div>
                     <p>No mentors found</p>
@@ -379,7 +422,8 @@ const ViewUsers = () => {
                             />
                           ) : (
                             <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold">
-                              {mentor.firstName?.charAt(0) || ""}{mentor.lastName?.charAt(0) || ""}
+                              {mentor.firstName?.charAt(0) || ""}
+                              {mentor.lastName?.charAt(0) || ""}
                             </div>
                           )}
                         </div>
@@ -400,16 +444,28 @@ const ViewUsers = () => {
                               {mentor.isActiveMember ? "Active" : "Inactive"}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 mb-1">@{mentor.userName}</p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            @{mentor.userName}
+                          </p>
                           <p className="text-sm text-gray-500">
                             {mentor.email} • {formatRank(mentor.rank)}
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="text-purple-400">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
                         </svg>
                       </div>
                     </div>
@@ -424,14 +480,29 @@ const ViewUsers = () => {
               <h2 className="text-2xl font-bold mb-6 text-blue-700">
                 Students ({students.length})
               </h2>
-              
+
               <div className="space-y-4 max-h-[32rem] overflow-y-auto">
                 {students.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                      <svg
+                        className="w-8 h-8 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 14l9-5-9-5-9 5 9 5z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
+                        />
                       </svg>
                     </div>
                     <p>No students found</p>
@@ -454,7 +525,8 @@ const ViewUsers = () => {
                             />
                           ) : (
                             <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
-                              {student.firstName?.charAt(0) || ""}{student.lastName?.charAt(0) || ""}
+                              {student.firstName?.charAt(0) || ""}
+                              {student.lastName?.charAt(0) || ""}
                             </div>
                           )}
                         </div>
@@ -475,16 +547,28 @@ const ViewUsers = () => {
                               {student.isActiveMember ? "Active" : "Inactive"}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 mb-1">@{student.userName}</p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            @{student.userName}
+                          </p>
                           <p className="text-sm text-gray-500">
                             {student.email} • {formatRank(student.rank)}
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="text-blue-400">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
                         </svg>
                       </div>
                     </div>

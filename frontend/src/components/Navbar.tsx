@@ -17,40 +17,34 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
+    // Check for super admin on mount and on location change
+    setIsSuperAdmin(localStorage.getItem("isSuperAdmin") === "true");
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setIsLoggedIn(true);
-
         const fetchUserRole = async () => {
           try {
             const userRef = doc(db, "users", user.uid);
-            console.log(userRef);
             const userSnap = await getDoc(userRef);
-            console.log(userSnap);
-
             if (userSnap.exists()) {
               const userData = userSnap.data();
               setIsMentor(userData.role === "mentor");
             } else {
-              console.warn("No user document found for UID:", user.uid);
               setIsMentor(false);
             }
           } catch (error) {
-            console.error("Error fetching user document:", error);
             setIsMentor(false);
           }
         };
-
-        // Call the async function
         fetchUserRole();
       } else {
         setIsLoggedIn(false);
         setIsMentor(false);
       }
     });
-
     return () => unsubscribe();
   }, [location]);
 
@@ -64,7 +58,7 @@ const Navbar = () => {
   }, []);
 
   const handleProfileClick = () => {
-    if (!isLoggedIn) {
+    if (!isSuperAdmin && !isLoggedIn) {
       navigate("/login");
     } else {
       setIsDropdownOpen((prev) => !prev);
@@ -75,6 +69,9 @@ const Navbar = () => {
     await signOut(auth);
     setIsLoggedIn(false);
     setIsDropdownOpen(false);
+    setIsSuperAdmin(false);
+    localStorage.removeItem("isSuperAdmin");
+    localStorage.removeItem("superAdminUser");
     navigate("/");
   };
 
@@ -185,17 +182,45 @@ const Navbar = () => {
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-white border rounded-md shadow-md z-50">
-                {isMentor ? (
+              <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-md z-50">
+                {isSuperAdmin ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        navigate("/viewUsers");
+                        setIsDropdownOpen(false);
+                      }}
+                      className="block w-full px-4 py-2 text-left hover:bg-gray-100"
+                    >
+                      View All Users
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate("/admin");
+                        setIsDropdownOpen(false);
+                      }}
+                      className="block w-full px-4 py-2 text-left hover:bg-gray-100"
+                    >
+                      Admin Panel
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate("/adminProject");
+                        setIsDropdownOpen(false);
+                      }}
+                      className="block w-full px-4 py-2 text-left hover:bg-gray-100"
+                    >
+                      Add Projects
+                    </button>
+                  </>
+                ) : isMentor ? (
                   <button
                     onClick={handleViewMentor}
                     className="block w-full px-4 py-2 text-left hover:bg-gray-100"
                   >
                     Add Projects
                   </button>
-                ) : (
-                  <></>
-                )}
+                ) : null}
                 <button
                   onClick={handleSignOut}
                   className="block w-full px-4 py-2 text-left hover:bg-gray-100 text-red-500"
@@ -262,10 +287,8 @@ const Navbar = () => {
                     {link.name}
                   </Link>
                 ))}
-
                 <hr className="w-full border-gray-200" />
-
-                {!isLoggedIn ? (
+                {!isLoggedIn && !isSuperAdmin ? (
                   <button
                     onClick={() => {
                       setIsOpen(false);
@@ -277,7 +300,28 @@ const Navbar = () => {
                   </button>
                 ) : (
                   <>
-                    {isMentor ? (
+                    {isSuperAdmin ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setIsOpen(false);
+                            navigate("/admin");
+                          }}
+                          className="w-full text-left text-gray-800 hover:text-blue-600"
+                        >
+                          Admin Panel
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsOpen(false);
+                            navigate("/addadminprojects");
+                          }}
+                          className="w-full text-left text-gray-800 hover:text-blue-600"
+                        >
+                          Add Admin Projects
+                        </button>
+                      </>
+                    ) : isMentor ? (
                       <button
                         onClick={() => {
                           setIsOpen(false);
@@ -287,9 +331,7 @@ const Navbar = () => {
                       >
                         Add Projects
                       </button>
-                    ) : (
-                      <></>
-                    )}
+                    ) : null}
                     <button
                       onClick={() => {
                         setIsOpen(false);

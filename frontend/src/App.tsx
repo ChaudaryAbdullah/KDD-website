@@ -32,7 +32,7 @@ const AnimatedRoutes = () => {
         <Route path="/mentorProject" element={<MentorProjects />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/adminProject" element={<AddProjectAdmin />} />
-        <Route path="/viewusers" element={<ViewUsers />} />
+        <Route path="/viewUsers" element={<ViewUsers />} />
       </Routes>
     </AnimatePresence>
   );
