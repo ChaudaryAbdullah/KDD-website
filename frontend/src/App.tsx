@@ -16,6 +16,7 @@ import SignUp from "./pages/SignUp";
 import MentorProjects from "./pages/MentorProjects.tsx";
 import AdminPage from "./pages/AdminPage.tsx";
 import AddProjectAdmin from "./pages/AddAdminProjects.tsx";
+import ViewUsers from "./pages/ViewUsers.tsx";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -31,6 +32,7 @@ const AnimatedRoutes = () => {
         <Route path="/mentorProject" element={<MentorProjects />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/adminProject" element={<AddProjectAdmin />} />
+        <Route path="/viewusers" element={<ViewUsers />} />
       </Routes>
     </AnimatePresence>
   );
