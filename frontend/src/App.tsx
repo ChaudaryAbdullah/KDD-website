@@ -20,6 +20,8 @@ import ViewUsers from "./pages/ViewUsers.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import UserProfilePage from "./pages/UserProfilePage.tsx";
 import ViewProjects from "./pages/ViewProjects.tsx";
+import ProjectsPage from "./pages/ProjectsPage.tsx";
+import AllProjectsPage from "./pages/AllProjectsPage.tsx";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -39,6 +41,8 @@ const AnimatedRoutes = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile/:uid" element={<UserProfilePage />} />
         <Route path="/viewProjects" element={<ViewProjects />} />
+        <Route path="/projectsPage" element={<ProjectsPage />} />
+        <Route path="/all-projects/:type" element={<AllProjectsPage />} />
       </Routes>
     </AnimatePresence>
   );

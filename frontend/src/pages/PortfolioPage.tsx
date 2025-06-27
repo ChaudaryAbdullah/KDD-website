@@ -220,7 +220,7 @@ function ProjectCard({ project }: { project: Project }) {
   return (
     <motion.div
       whileHover={{ scale: 1.03 }}
-      className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-5 rounded-2xl shadow-lg border border-blue-200 flex flex-col transition-all duration-200 min-w-[250px] max-w-full sm:min-w-[300px] sm:max-w-[400px] md:min-w-[350px] md:max-w-[500px] w-full"
+      className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-5 rounded-2xl shadow-lg border border-blue-200 flex flex-col transition-all duration-200 w-full"
     >
       <div className="relative mb-3 h-40 rounded-xl overflow-hidden shadow">
         <img
@@ -264,6 +264,20 @@ function RankSection({
   showInactiveLabel?: boolean;
 }) {
   const rankInfo = getRankInfo(rank);
+
+  // Dynamic grid classes based on number of users
+  const getGridClasses = (userCount: number) => {
+    if (userCount === 1) {
+      return "flex justify-center"; // Single card centered
+    } else if (userCount === 2) {
+      return "grid grid-cols-1 sm:grid-cols-2 gap-6 justify-items-center max-w-2xl mx-auto"; // Two cards centered
+    } else if (userCount <= 6) {
+      return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center"; // Small groups
+    } else {
+      return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center"; // Large groups
+    }
+  };
+
   return (
     <div className="mb-16">
       <div className="text-center mb-8">
@@ -275,7 +289,7 @@ function RankSection({
         ></div>
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap justify-center gap-6">
+        <div className={getGridClasses(users.length)}>
           {users.map((user) => (
             <ProfileCard
               key={user.userName}
@@ -315,6 +329,19 @@ function InactiveUsersSection({
 
   if (allInactiveUsers.length === 0) return null;
 
+  // Dynamic layout for inactive users
+  const getInactiveGridClasses = (userCount: number) => {
+    if (userCount === 1) {
+      return "flex justify-center";
+    } else if (userCount === 2) {
+      return "grid grid-cols-1 sm:grid-cols-2 gap-6 justify-items-center max-w-2xl mx-auto";
+    } else if (userCount <= 6) {
+      return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center";
+    } else {
+      return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center";
+    }
+  };
+
   return (
     <div className="mb-16 bg-gray-50 py-12 rounded-2xl">
       <div className="text-center mb-8">
@@ -336,7 +363,14 @@ function InactiveUsersSection({
             <h3 className="text-2xl font-bold text-gray-700 mb-6 text-center">
               Mentors
             </h3>
-            <div className="flex flex-wrap justify-center gap-6">
+            <div
+              className={getInactiveGridClasses(
+                MENTOR_RANK_HIERARCHY.reduce(
+                  (acc, rank) => acc + (inactiveMentors[rank]?.length || 0),
+                  0
+                )
+              )}
+            >
               {MENTOR_RANK_HIERARCHY.map((rank) =>
                 inactiveMentors[rank]?.map((user) => (
                   <ProfileCard
@@ -358,7 +392,14 @@ function InactiveUsersSection({
             <h3 className="text-2xl font-bold text-gray-700 mb-6 text-center">
               Students
             </h3>
-            <div className="flex flex-wrap justify-center gap-6">
+            <div
+              className={getInactiveGridClasses(
+                STUDENT_RANK_HIERARCHY.reduce(
+                  (acc, rank) => acc + (inactiveStudents[rank]?.length || 0),
+                  0
+                )
+              )}
+            >
               {STUDENT_RANK_HIERARCHY.map((rank) =>
                 inactiveStudents[rank]?.map((user) => (
                   <ProfileCard
@@ -468,6 +509,17 @@ export default function PortfolioPage() {
     fetchData();
   }, []);
 
+  // Dynamic grid classes for projects
+  const getProjectGridClasses = (projectCount: number) => {
+    if (projectCount === 1) {
+      return "flex justify-center max-w-md mx-auto";
+    } else if (projectCount === 2) {
+      return "grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto";
+    } else {
+      return "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+    }
+  };
+
   return (
     <div className="pt-24 bg-gradient-to-br from-violet-800 via-purple-700 to-purple-600">
       <motion.div
@@ -530,7 +582,9 @@ export default function PortfolioPage() {
                 <div className="w-32 h-1 bg-gradient-to-r from-blue-400 to-purple-500 mx-auto rounded-full"></div>
               </div>
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-wrap justify-center gap-6 pb-10">
+                <div
+                  className={`${getProjectGridClasses(projects.length)} pb-10`}
+                >
                   {projects.map((project) => (
                     <ProjectCard key={project.id} project={project} />
                   ))}

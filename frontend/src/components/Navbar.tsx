@@ -88,6 +88,7 @@ const Navbar = () => {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Portfolio", path: "/portfolio" },
+    { name: "Projects", path: "/projectsPage" },
     { name: "Contact", path: "/contact" },
   ].filter(Boolean); // removes falsy (like false or null)
 
