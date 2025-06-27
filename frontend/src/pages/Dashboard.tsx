@@ -197,21 +197,45 @@ const Dashboard = () => {
               rows={3}
             />
             <label className="block text-sm font-medium mb-1">
-              Profile Picture URL
+              Profile Picture
             </label>
-            <input
-              name="profilePic"
-              value={editData.profilePic || ""}
-              onChange={handleChange}
-              className="w-full p-2 border rounded mb-3"
-            />
-            {editData.profilePic && (
-              <img
-                src={editData.profilePic}
-                alt="Profile"
-                className="h-24 w-24 object-cover rounded-full border mb-3"
+            <div className="flex items-center gap-3 mb-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setEditData((prev: any) => ({
+                        ...prev,
+                        profilePic: reader.result as string,
+                      }));
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                className="hidden"
+                id="profile-pic-upload"
               />
-            )}
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById("profile-pic-upload")?.click()
+                }
+                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+              >
+                Upload Image
+              </button>
+              {editData.profilePic && (
+                <img
+                  src={editData.profilePic}
+                  alt="Profile"
+                  className="h-16 w-16 object-cover rounded-full border"
+                />
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">
