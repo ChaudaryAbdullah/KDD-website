@@ -130,7 +130,7 @@ export default function UserProfilePage() {
           <p className="text-lg text-gray-700 mb-1">@{user.userName}</p>
           <p className="text-sm text-gray-500 mb-2">{user.email}</p>
           <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold mb-2">
-            {user.rank} {user.role}
+            {user.rank.charAt(0).toUpperCase() + user.rank.slice(1)}
           </span>
           {user.isActiveMember ? (
             <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold mb-2">
