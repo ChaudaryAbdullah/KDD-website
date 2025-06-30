@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -22,9 +22,35 @@ import UserProfilePage from "./pages/UserProfilePage.tsx";
 import ViewProjects from "./pages/ViewProjects.tsx";
 import ProjectsPage from "./pages/ProjectsPage.tsx";
 import AllProjectsPage from "./pages/AllProjectsPage.tsx";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { auth, db } from "./firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  useEffect(() => {
+    const fetchRole = async () => {
+      // Check localStorage for isSuperAdmin
+      if (localStorage.getItem("isSuperAdmin") === "true") {
+        setUserRole("superadmin");
+        return;
+      }
+      const user = auth.currentUser;
+      if (user) {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          setUserRole(userSnap.data().role);
+        } else {
+          setUserRole(null);
+        }
+      } else {
+        setUserRole(null);
+      }
+    };
+    fetchRole();
+  }, [location]);
 
   return (
     <AnimatePresence mode="wait">
@@ -34,13 +60,64 @@ const AnimatedRoutes = () => {
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<LoginForm />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/mentorProject" element={<MentorProjects />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/adminProject" element={<AddProjectAdmin />} />
-        <Route path="/viewUsers" element={<ViewUsers />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route
+          path="/mentorProject"
+          element={
+            <ProtectedRoute allowedRoles={["mentor"]} userRole={userRole}>
+              <MentorProjects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute
+              allowedRoles={["admin", "superadmin"]}
+              userRole={userRole}
+            >
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/adminProject"
+          element={
+            <ProtectedRoute
+              allowedRoles={["admin", "superadmin"]}
+              userRole={userRole}
+            >
+              <AddProjectAdmin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/viewUsers"
+          element={
+            <ProtectedRoute allowedRoles={["superadmin"]} userRole={userRole}>
+              <ViewUsers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute
+              allowedRoles={["mentor", "student", "admin", "superadmin"]}
+              userRole={userRole}
+            >
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/profile/:uid" element={<UserProfilePage />} />
-        <Route path="/viewProjects" element={<ViewProjects />} />
+        <Route
+          path="/viewProjects"
+          element={
+            <ProtectedRoute allowedRoles={["superadmin"]} userRole={userRole}>
+              <ViewProjects />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/projectsPage" element={<ProjectsPage />} />
         <Route path="/all-projects/:type" element={<AllProjectsPage />} />
       </Routes>

@@ -225,7 +225,7 @@ const Navbar = () => {
                       }}
                       className="block w-full px-4 py-2 text-left hover:bg-gray-100"
                     >
-                      Add Projects
+                      Manage Projects
                     </button>
                   </>
                 ) : isMentor ? (
@@ -233,7 +233,7 @@ const Navbar = () => {
                     onClick={handleViewMentor}
                     className="block w-full px-4 py-2 text-left hover:bg-gray-100"
                   >
-                    Add Projects
+                    Manage Projects
                   </button>
                 ) : null}
 
@@ -360,7 +360,7 @@ const Navbar = () => {
                           }}
                           className="w-full text-left text-gray-800 hover:text-blue-600"
                         >
-                          Add Admin Projects
+                          Manage Projects
                         </button>
                       </>
                     ) : isMentor ? (
@@ -371,7 +371,7 @@ const Navbar = () => {
                         }}
                         className="w-full text-left text-gray-800 hover:text-blue-600"
                       >
-                        Add Projects
+                        Manage Projects
                       </button>
                     ) : null}
 

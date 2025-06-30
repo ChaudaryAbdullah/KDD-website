@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { motion } from "framer-motion";
+import { deleteDoc } from "firebase/firestore";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -218,6 +218,20 @@ const AddProjectAdmin = () => {
     } catch (err: any) {
       console.error("Error adding student:", err);
       toast.error("Failed to create student: " + err.message);
+    }
+  };
+
+  const handleDeleteProject = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this project?"))
+      return;
+
+    try {
+      await deleteDoc(doc(db, "adminprojects", id));
+      toast.success("Project deleted successfully!");
+      loadProjects(); // Refresh the list
+    } catch (err) {
+      console.error("Error deleting project:", err);
+      toast.error("Failed to delete project");
     }
   };
 
@@ -548,12 +562,20 @@ const AddProjectAdmin = () => {
                         ))}
                     </div>
                   </div>
-                  <button
-                    className="ml-3 px-4 py-2 text-sm rounded-lg font-semibold transition-colors bg-purple-100 text-purple-700 hover:bg-purple-200"
-                    onClick={() => handleEditProject(project)}
-                  >
-                    Edit
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      className="px-4 py-2 text-sm rounded-lg font-semibold transition-colors bg-red-100 text-red-700 hover:bg-red-200"
+                      onClick={() => handleDeleteProject(project.id)}
+                    >
+                      Delete
+                    </button>
+                    <button
+                      className="px-4 py-2 text-sm rounded-lg font-semibold transition-colors bg-purple-100 text-purple-700 hover:bg-purple-200"
+                      onClick={() => handleEditProject(project)}
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </div>
               ))
             )}

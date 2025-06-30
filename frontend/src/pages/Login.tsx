@@ -24,7 +24,7 @@ const LoginForm = () => {
       return;
     } else {
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
         toast.success("Login Successful!", {
           position: "top-right",
           autoClose: 3000,
@@ -59,7 +59,7 @@ const LoginForm = () => {
             type="email"
             placeholder="Email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value.toLowerCase())}
             required
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
           />

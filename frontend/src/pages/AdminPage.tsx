@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { getAuth, deleteUser as firebaseDeleteUser } from "firebase/auth";
 
 interface User {
   uid: string;
@@ -236,7 +237,7 @@ const AdminPage = () => {
       // Create user with Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        pendingUser.email,
+        pendingUser.email.toLowerCase(),
         pendingUser.password
       );
       const newUser = userCredential.user;
@@ -245,7 +246,7 @@ const AdminPage = () => {
       await setDoc(doc(db, "users", newUser.uid), {
         uid: newUser.uid,
         userName: pendingUser.userName,
-        email: pendingUser.email,
+        email: pendingUser.email.toLowerCase(),
         role: pendingUser.role,
         rank: pendingUser.rank || "",
         firstName: pendingUser.firstName,
@@ -284,8 +285,9 @@ const AdminPage = () => {
         fetchNotifications(),
       ]);
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
       console.error("Error approving user:", err);
-      showToast(`Failed to approve user: ${err.message}`, "error");
+      showToast(`Failed to approve user: ${errorMsg}`, "error");
     }
   };
 
@@ -313,8 +315,9 @@ const AdminPage = () => {
       // Refresh data
       await Promise.all([fetchPendingUsers(), fetchNotifications()]);
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
       console.error("Error rejecting user:", err);
-      showToast(`Failed to reject user: ${err.message}`, "error");
+      showToast(`Failed to reject user: ${errorMsg}`, "error");
     }
   };
 
@@ -480,8 +483,9 @@ const AdminPage = () => {
         isActiveMember: false,
       });
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
       console.error("Error submitting user data:", err);
-      showToast(`Failed to submit user data: ${err.message}`, "error");
+      showToast(`Failed to submit user data: ${errorMsg}`, "error");
     }
   };
 
@@ -528,6 +532,96 @@ const AdminPage = () => {
     activeTab === "notifications"
       ? 0
       : notifications.filter((n) => !n.read).length;
+
+  // Helper to check if user is linked to any project
+  const isUserLinkedToProject = async (userId: string, role: string) => {
+    // For mentors: allow deletion if only linked to mentor projects (delete those projects too)
+    // Block if linked to adminprojects (as mentor or student)
+    if (role === "mentor") {
+      // Check adminprojects
+      const adminProjectsSnap = await getDocs(collection(db, "adminprojects"));
+      for (const docSnap of adminProjectsSnap.docs) {
+        const data = docSnap.data();
+        if (data.mentor === userId) return { linked: true, admin: true };
+        if (Array.isArray(data.students) && data.students.includes(userId))
+          return { linked: true, admin: true };
+      }
+      // Check mentor projects (delete them if found)
+      const mentorProjectsSnap = await getDocs(collection(db, "projects"));
+      const mentorProjectIds = [];
+      for (const docSnap of mentorProjectsSnap.docs) {
+        const data = docSnap.data();
+        if (data.Mentor === userId) mentorProjectIds.push(docSnap.id);
+      }
+      return {
+        linked: mentorProjectIds.length > 0,
+        admin: false,
+        mentorProjectIds,
+      };
+    } else {
+      // For students: block if linked to any adminprojects
+      const adminProjectsSnap = await getDocs(collection(db, "adminprojects"));
+      for (const docSnap of adminProjectsSnap.docs) {
+        const data = docSnap.data();
+        if (Array.isArray(data.students) && data.students.includes(userId))
+          return { linked: true, admin: true };
+      }
+      return { linked: false, admin: false };
+    }
+  };
+
+  const handleDeleteUser = async (user: User) => {
+    try {
+      const result = await isUserLinkedToProject(user.uid, user.role);
+      if (user.role === "mentor" && result.admin) {
+        showToast(
+          "Cannot delete mentor: user is linked to an admin project.",
+          "error"
+        );
+        return;
+      }
+      if (
+        user.role === "mentor" &&
+        result.mentorProjectIds &&
+        result.mentorProjectIds.length > 0
+      ) {
+        // Delete all mentor projects for this mentor
+        for (const projectId of result.mentorProjectIds) {
+          await deleteDoc(doc(db, "projects", projectId));
+        }
+      } else if (result.linked) {
+        showToast("Cannot delete user: user is linked to a project.", "error");
+        return;
+      }
+      // Delete from Firestore
+      await deleteDoc(doc(db, "users", user.uid));
+      // Delete from Firebase Authentication (requires admin privileges or user re-auth)
+      try {
+        // Try to delete from Auth if current user is the one being deleted
+        const authInstance = getAuth();
+        if (
+          authInstance.currentUser &&
+          authInstance.currentUser.uid === user.uid
+        ) {
+          await firebaseDeleteUser(authInstance.currentUser);
+        } else {
+          // If not, attempt to sign in as the user and delete (not possible without password)
+          // In production, this should be handled by a backend admin SDK function
+        }
+      } catch (authErr) {
+        // Log but don't block UI
+        console.warn(
+          "Could not delete user from Firebase Auth (admin SDK required):",
+          authErr
+        );
+      }
+      showToast("User deleted successfully!", "success");
+      await fetchUsers();
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      showToast("Failed to delete user", "error");
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br bg-gradient-to-b from-violet-800 via-purple-700 to-white py-8">
@@ -837,17 +931,26 @@ const AdminPage = () => {
                           {user.rank}
                         </p>
                       </div>
-                      <button
-                        onClick={() => handleEdit(user)}
-                        disabled={editId === user.uid}
-                        className={`ml-3 px-4 py-2 text-sm rounded-lg font-semibold transition-colors ${
-                          editId === user.uid
-                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            : "bg-purple-100 text-purple-700 hover:bg-purple-200"
-                        }`}
-                      >
-                        {editId === user.uid ? "Editing" : "Edit"}
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleDeleteUser(user)}
+                          disabled={editId === user.uid}
+                          className={`ml-0 px-4 py-2 text-sm rounded-lg font-semibold transition-colors bg-red-100 text-red-700 hover:bg-red-200`}
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => handleEdit(user)}
+                          disabled={editId === user.uid}
+                          className={`ml-3 px-4 py-2 text-sm rounded-lg font-semibold transition-colors ${
+                            editId === user.uid
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                          }`}
+                        >
+                          {editId === user.uid ? "Editing" : "Edit"}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

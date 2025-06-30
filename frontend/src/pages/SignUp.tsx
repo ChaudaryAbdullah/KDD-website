@@ -74,7 +74,10 @@ function SignUp() {
 
     try {
       // Check for duplicate users
-      const duplicate = await checkDuplicateUser(formData.email, formData.userName);
+      const duplicate = await checkDuplicateUser(
+        formData.email.toLowerCase(),
+        formData.userName
+      );
       if (duplicate) {
         setError("Username or email already exists!");
         toast.error("Username or email already exists!", {
@@ -92,7 +95,7 @@ function SignUp() {
         lastName: formData.lastName,
         address: formData.address,
         dob: formData.dob,
-        email: formData.email,
+        email: formData.email.toLowerCase(),
         role: formData.role,
         rank: formData.rank,
         password: formData.password, // Store temporarily for approval
@@ -100,28 +103,31 @@ function SignUp() {
         description: formData.description,
         isActiveMember: formData.isActiveMember,
         requestedAt: new Date().toISOString(),
-        status: "pending"
+        status: "pending",
       });
 
       // Create admin notification
       await addDoc(collection(db, "adminNotifications"), {
         type: "user_signup_request",
         userName: formData.userName,
-        email: formData.email,
+        email: formData.email.toLowerCase(),
         firstName: formData.firstName,
         lastName: formData.lastName,
         role: formData.role,
         message: `New user ${formData.firstName} ${formData.lastName} (${formData.userName}) has requested to join as ${formData.role}`,
         createdAt: new Date().toISOString(),
         read: false,
-        status: "pending"
+        status: "pending",
       });
 
-      toast.success("Signup request submitted successfully! Please wait for admin approval.", {
-        position: "top-right",
-        autoClose: 5000,
-        theme: "colored",
-      });
+      toast.success(
+        "Signup request submitted successfully! Please wait for admin approval.",
+        {
+          position: "top-right",
+          autoClose: 5000,
+          theme: "colored",
+        }
+      );
 
       setFormData({
         userName: "",
@@ -140,8 +146,9 @@ function SignUp() {
       });
 
       // Show success message instead of navigating
-      setSuccessMessage("Your signup request has been submitted and is pending admin approval. You will be notified once approved.");
-      
+      setSuccessMessage(
+        "Your signup request has been submitted and is pending admin approval. You will be notified once approved."
+      );
     } catch (error: any) {
       setError(error.message);
       toast.error("Signup failed: " + error.message, {
@@ -170,7 +177,8 @@ function SignUp() {
         </div>
 
         <p className="text-sm text-gray-600 mb-4">
-          Creating an account requires admin approval. You will be notified once your request is reviewed.
+          Creating an account requires admin approval. You will be notified once
+          your request is reviewed.
         </p>
 
         {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
