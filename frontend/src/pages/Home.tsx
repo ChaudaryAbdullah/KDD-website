@@ -5,7 +5,7 @@ import DeepLearning from "../assets/Deep Learning_col.png";
 import MachineLearning from "../assets/Machine learning_col.png";
 import BigData from "../assets/Big Data_col.png";
 import { motion, useScroll, useTransform } from "framer-motion";
-import Bot from "../components/bot";
+import Bot from "../components/bot.tsx";
 import {
   ArrowRight,
   FileArchive,
